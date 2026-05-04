@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 let ANTHROPIC_KEY = ''; // Set via /set-key endpoint from the UI
 
 // ── HMAC-SHA256 JWT builder (Node.js) ──────────────────────────────────────
