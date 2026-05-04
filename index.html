@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoondAI</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0c10;color:#dde3f0;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#232836;border-radius:3px}
+
+/* LOGIN */
+#loginWrap{flex:1;display:flex;align-items:center;justify-content:center}
+.card{background:#111318;border:1px solid #232836;border-radius:16px;padding:40px;width:440px;max-width:96vw}
+.logo{font-size:24px;font-weight:800;color:#00e5a0;margin-bottom:4px}
+.logo span{color:#556080;font-weight:400}
+.sub{font-size:13px;color:#556080;margin-bottom:28px;line-height:1.5}
+.fl{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
+.fl label{font-size:11px;font-family:monospace;color:#556080;text-transform:uppercase;letter-spacing:1px}
+.fl input{background:#181c24;border:1px solid #232836;color:#dde3f0;padding:10px 13px;border-radius:8px;font-size:14px;outline:none;width:100%;transition:border-color .2s}
+.fl input:focus{border-color:#00e5a0}.fl input::placeholder{color:#3a4060}
+.hint{font-size:11px;font-family:monospace;min-height:14px;margin-top:2px}
+.hint.ok{color:#00e5a0}.hint.err{color:#f45b5b}
+.lbtn{width:100%;padding:12px;border-radius:8px;border:none;background:#00e5a0;color:#000;font-weight:800;font-size:15px;cursor:pointer;margin-top:6px;transition:opacity .15s}
+.lbtn:disabled{opacity:.4;cursor:not-allowed}
+.lerr{background:rgba(244,91,91,.08);border:1px solid rgba(244,91,91,.3);color:#f45b5b;border-radius:8px;padding:10px 13px;font-size:12px;font-family:monospace;margin-top:10px;display:none}
+.lerr.show{display:block}
+.linfo{background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.2);border-radius:8px;padding:11px 13px;font-size:12px;color:#7de8c4;font-family:monospace;line-height:1.7;margin-bottom:12px;display:none}
+.linfo.show{display:block}
+.sep{border:none;border-top:1px solid #232836;margin:16px 0}
+.lfooter{font-size:11px;color:#3a4060;font-family:monospace;text-align:center;margin-top:14px;line-height:1.6}
+
+/* APP */
+#appWrap{display:none;flex:1;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;padding:0 20px;height:52px;border-bottom:1px solid #232836;background:#111318;flex-shrink:0;gap:12px}
+.hlogo{font-size:17px;font-weight:800;color:#00e5a0}
+.hlogo span{color:#556080;font-weight:400}
+.hsep{width:1px;height:20px;background:#232836}
+.tabs{display:flex;gap:4px}
+.tab{padding:5px 13px;border-radius:6px;font-size:13px;font-weight:700;color:#556080;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.tab.active{color:#00e5a0;background:rgba(0,229,160,.1);border-color:rgba(0,229,160,.2)}
+.tab:hover:not(.active){color:#dde3f0;background:#181c24}
+.hright{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;font-family:monospace;color:#556080}
+.dot{width:7px;height:7px;border-radius:50%;background:#00e5a0;box-shadow:0 0 7px #00e5a0}
+.view{display:none;flex:1;flex-direction:column;overflow:hidden}
+.view.active{display:flex}
+
+/* CHAT */
+#msgs{flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:40px;color:#556080}
+.msg{display:flex;gap:12px;padding:12px 24px;animation:fu .2s ease}
+@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.av{width:28px;height:28px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;margin-top:2px}
+.av.user{background:#1e2330;border:1px solid #232836}
+.av.ai{background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.2)}
+.mbody{flex:1;min-width:0}
+.mname{font-size:10px;font-weight:700;font-family:monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.mname.user{color:#556080}.mname.ai{color:#00e5a0}
+.mtext{font-size:14px;line-height:1.7}
+.mtext p{margin:3px 0}.mtext strong{color:#fff;font-weight:700}
+.mtext ul{padding-left:18px;margin:5px 0}.mtext li{margin:2px 0}
+.mtext pre{background:#181c24;border:1px solid #232836;border-radius:7px;padding:12px;font-family:monospace;font-size:12px;overflow-x:auto;margin:6px 0;color:#a8d8b0}
+.mtext code{background:#1e2330;padding:1px 5px;border-radius:3px;color:#00e5a0;font-size:12px;font-family:monospace}
+.typing{display:flex;gap:4px;align-items:center;height:18px}
+.typing span{width:5px;height:5px;border-radius:50%;background:#00e5a0;opacity:.4;animation:bl 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.4}40%{opacity:1}}
+#suggs{padding:0 24px 12px;display:flex;flex-wrap:wrap;gap:7px}
+.sug{padding:6px 13px;background:#181c24;border:1px solid #232836;border-radius:20px;font-size:12px;color:#556080;cursor:pointer;font-weight:500;transition:all .15s}
+.sug:hover{border-color:#00e5a0;color:#00e5a0;background:rgba(0,229,160,.08)}
+#inputArea{padding:10px 24px 18px;border-top:1px solid #232836;background:#111318;flex-shrink:0}
+.irow{display:flex;gap:8px;align-items:flex-end;background:#181c24;border:1px solid #232836;border-radius:11px;padding:9px 12px;transition:border-color .2s}
+.irow:focus-within{border-color:rgba(0,229,160,.35)}
+#chatInput{flex:1;background:transparent;border:none;outline:none;color:#dde3f0;font-family:inherit;font-size:14px;resize:none;max-height:110px;line-height:1.5}
+#chatInput::placeholder{color:#3a4060}
+#sendBtn{width:32px;height:32px;border-radius:7px;background:#00e5a0;border:none;cursor:pointer;flex-shrink:0;font-size:15px;color:#000;font-weight:800}
+#sendBtn:disabled{opacity:.3;cursor:not-allowed}
+.ihint{font-size:11px;color:#3a4060;font-family:monospace;margin-top:6px;text-align:center}
+#view-config{overflow-y:auto;padding:30px}
+.ccard{background:#111318;border:1px solid #232836;border-radius:12px;padding:24px;max-width:480px;margin-bottom:16px}
+.ctitle{font-size:14px;font-weight:800;margin-bottom:4px}
+.csub{font-size:13px;color:#556080;margin-bottom:14px;line-height:1.5}
+.dbtn{padding:9px 16px;border-radius:8px;border:1px solid rgba(244,91,91,.3);background:rgba(244,91,91,.1);color:#f45b5b;font-weight:700;font-size:13px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginWrap">
+  <div class="card">
+    <div class="logo">Boond<span>AI</span></div>
+    <div class="sub" id="lsub">Connectez-vous à votre assistant BoondManager</div>
+    <div class="fl">
+      <label>Email</label>
+      <input type="email" id="lEmail" placeholder="nom@entreprise.com" oninput="onEmail()" />
+      <div class="hint" id="lEmailH"></div>
+    </div>
+    <div class="fl">
+      <label id="lPwLbl">Mot de passe BoondAI <span style="font-weight:400;font-size:10px">(1 maj · 1 chiffre · 1 symbole · 8 min)</span></label>
+      <input type="password" id="lPw" placeholder="Choisissez un mot de passe sécurisé" oninput="onPw()" onkeydown="if(event.key==='Enter')doLogin()" />
+      <div class="hint" id="lPwH"></div>
+    </div>
+    <div id="jwtBlock" style="display:none">
+      <hr class="sep">
+      <div class="linfo show">🔑 Première connexion — entrez vos 3 tokens BoondManager.<br>Ils seront chiffrés avec votre mot de passe et sauvegardés localement.</div>
+      <div class="fl"><label>User Token (Profil → Config → API)</label><input type="password" id="lUT" placeholder="Token utilisateur" /></div>
+      <div class="fl"><label>Client Token (Admin → API/Sandbox)</label><input type="password" id="lCT" placeholder="Token client" /></div>
+      <div class="fl"><label>Client Key (Admin → API/Sandbox)</label><input type="password" id="lCK" placeholder="Clé secrète" /></div>
+    </div>
+    <button class="lbtn" id="lBtn" onclick="doLogin()">Se connecter</button>
+    <div class="lerr" id="lErr"></div>
+    <div class="lfooter">Tokens chiffrés (AES-GCM) avec votre mot de passe — jamais en clair.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appWrap">
+  <header>
+    <div class="hlogo">Boond<span>AI</span></div>
+    <div class="hsep"></div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('chat',this)">💬 Assistant</div>
+      <div class="tab" onclick="switchTab('config',this)">👤 Compte</div>
+      <div class="tab" id="tabParams" onclick="switchTab('params',this)">🔑 Paramètres</div>
+    </div>
+    <div class="hright"><div class="dot"></div><span id="hUser"></span></div>
+  </header>
+  <div class="view active" id="view-chat">
+    <div id="msgs">
+      <div class="empty-state" id="emptyState">
+        <div style="font-size:44px;margin-bottom:8px">🤖</div>
+        <div style="font-size:20px;font-weight:800;color:#dde3f0">Bonjour, je suis BoondAI</div>
+        <div style="font-size:13px;line-height:1.6;max-width:380px">Posez-moi n'importe quelle question sur vos données BoondManager en langage naturel.</div>
+      </div>
+    </div>
+    <div id="suggs">
+      <div class="sug" onclick="ask(this.textContent)">📁 Combien de projets en cours ?</div>
+      <div class="sug" onclick="ask(this.textContent)">👥 Combien de ressources actives ?</div>
+      <div class="sug" onclick="ask(this.textContent)">💶 Factures impayées</div>
+      <div class="sug" onclick="ask(this.textContent)">⏱️ Saisies de temps récentes</div>
+      <div class="sug" onclick="ask(this.textContent)">🤝 Derniers contacts CRM</div>
+    </div>
+    <div id="inputArea">
+      <div class="irow">
+        <textarea id="chatInput" placeholder="Posez votre question sur BoondManager…" rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,110)+'px'"></textarea>
+        <button id="sendBtn" onclick="sendMsg()">↑</button>
+      </div>
+      <div class="ihint">Entrée pour envoyer · Maj+Entrée pour nouvelle ligne</div>
+    </div>
+  </div>
+  <div class="view" id="view-config">
+    <div class="ccard">
+      <div class="ctitle">👤 Session active</div>
+      <div class="csub" id="sessInfo">Connecté à BoondManager</div>
+      <button class="dbtn" onclick="doLogout()">🚪 Se déconnecter</button>
+    </div>
+    <div class="ccard">
+      <div class="ctitle">ℹ️ Serveur local</div>
+      <div class="csub">Cette app tourne sur <strong>http://localhost:3000</strong> via un serveur Node.js qui fait le pont avec les APIs Anthropic et BoondManager.</div>
+    </div>
+  </div>
+  <div class="view" id="view-params">
+    <div class="ccard">
+      <div class="ctitle">🔑 Clé API Anthropic</div>
+      <div class="csub">Entrez votre clé Anthropic pour activer l'intelligence artificielle. Elle est stockée uniquement en mémoire et jamais sauvegardée sur disque.</div>
+      <div class="fl">
+        <label>Clé API Anthropic</label>
+        <input type="password" id="anthropicKeyInput" placeholder="sk-ant-..." style="font-family:monospace" />
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
+        <button onclick="saveAnthropicKey()" style="padding:10px 20px;border-radius:8px;border:none;background:#00e5a0;color:#000;font-weight:800;font-size:13px;cursor:pointer">Sauvegarder</button>
+        <div id="keyStatus" style="font-size:12px;font-family:monospace;color:#556080"></div>
+      </div>
+      <div style="background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.2);border-radius:8px;padding:12px 14px;font-size:12px;color:#7de8c4;font-family:monospace;line-height:1.7;margin-top:16px">
+        Où trouver votre clé :<br>
+        1. Allez sur <strong>console.anthropic.com/settings/keys</strong><br>
+        2. Cliquez <strong>Create Key</strong><br>
+        3. Copiez la clé (commence par sk-ant-...)<br>
+        4. Collez-la ici et cliquez Sauvegarder
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SK = 'boondai_v4';
+let _sess = null;
+let _returning = false;
+
+// ── AES-GCM (WebCrypto) ────────────────────────────────────────────────
+async function encSess(data, pw) {
+  const e = new TextEncoder(), km = await crypto.subtle.importKey('raw', e.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+  const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, e.encode(JSON.stringify(data)));
+  return { salt: [...salt], iv: [...iv], data: [...new Uint8Array(enc)] };
+}
+async function decSess(stored, pw) {
+  try {
+    const e = new TextEncoder(), km = await crypto.subtle.importKey('raw', e.encode(pw), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: new Uint8Array(stored.salt), iterations: 100000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(stored.iv) }, key, new Uint8Array(stored.data));
+    return JSON.parse(new TextDecoder().decode(dec));
+  } catch { return null; }
+}
+
+// ── API calls via local server ─────────────────────────────────────────
+async function bFetch(path, method = 'GET', body = null) {
+  if (!_sess) return { ok: false, data: { error: 'Non connecté' } };
+  const opts = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ut: _sess.ut, ct: _sess.ct, ck: _sess.ck, boondUrl: _sess.url, boondPath: path, requestBody: body })
+  };
+  try {
+    const res = await fetch('/boond' + path, opts);
+    const data = await res.json();
+    return { ok: res.ok, status: res.status, data };
+  } catch (e) { return { ok: false, data: { error: e.message } }; }
+}
+
+async function callClaude(messages, system, max = 1000) {
+  const res = await fetch('/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: max, system, messages })
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error('Claude ' + (e.error?.message || res.status)); }
+  return (await res.json()).content?.[0]?.text || '';
+}
+
+// ── Validation ─────────────────────────────────────────────────────────
+const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const isStrong = v => v.length >= 8 && /[A-Z]/.test(v) && /[0-9]/.test(v) && /[^a-zA-Z0-9]/.test(v);
+
+function onEmail() {
+  const v = document.getElementById('lEmail').value.trim(), h = document.getElementById('lEmailH');
+  if (!v) { h.textContent = ''; h.className = 'hint'; return; }
+  if (!isEmail(v)) { h.textContent = '❌ Format invalide'; h.className = 'hint err'; return; }
+  h.textContent = '✓ Email valide'; h.className = 'hint ok';
+}
+
+function onPw() {
+  const v = document.getElementById('lPw').value, h = document.getElementById('lPwH');
+  if (_returning) { h.textContent = ''; h.className = 'hint'; return; }
+  if (!v) { h.textContent = ''; h.className = 'hint'; return; }
+  const miss = [];
+  if (v.length < 8) miss.push('8 car.');
+  if (!/[A-Z]/.test(v)) miss.push('majuscule');
+  if (!/[0-9]/.test(v)) miss.push('chiffre');
+  if (!/[^a-zA-Z0-9]/.test(v)) miss.push('symbole');
+  if (miss.length) { h.textContent = '❌ Manque : ' + miss.join(', '); h.className = 'hint err'; return; }
+  h.textContent = '✓ Valide'; h.className = 'hint ok';
+}
+
+function showErr(msg) {
+  const e = document.getElementById('lErr'); e.textContent = msg; e.className = 'lerr show';
+  document.getElementById('lBtn').disabled = false; document.getElementById('lBtn').textContent = 'Se connecter';
+}
+
+async function doLogin() {
+  const email = document.getElementById('lEmail').value.trim();
+  const pw = document.getElementById('lPw').value;
+  if (!isEmail(email)) { showErr('Email invalide.'); return; }
+  if (!pw) { showErr('Entrez votre mot de passe.'); return; }
+  document.getElementById('lBtn').disabled = true; document.getElementById('lBtn').textContent = 'Connexion…';
+  document.getElementById('lErr').className = 'lerr';
+  try {
+    const stored = JSON.parse(localStorage.getItem(SK) || 'null');
+    if (stored && stored.email === email) {
+      const sess = await decSess(stored.cipher, pw);
+      if (!sess) { showErr('Mot de passe incorrect.'); return; }
+      _sess = sess;
+      const r = await bFetch('/resources?number=1');
+      if (r.ok) { loginOk(email); return; }
+      localStorage.removeItem(SK); _sess = null; _returning = false;
+      document.getElementById('jwtBlock').style.display = 'block';
+      showErr('Session expirée — re-saisissez vos tokens.'); return;
+    }
+    if (!isStrong(pw)) { showErr('Mot de passe trop faible : 8 car. min, 1 maj, 1 chiffre, 1 symbole.'); return; }
+    if (document.getElementById('jwtBlock').style.display === 'none') {
+      document.getElementById('jwtBlock').style.display = 'block';
+      showErr('Première connexion — entrez vos tokens ci-dessous.'); return;
+    }
+    const ut = document.getElementById('lUT').value.trim();
+    const ct = document.getElementById('lCT').value.trim();
+    const ck = document.getElementById('lCK').value.trim();
+    if (!ut || !ct || !ck) { showErr('Remplissez les 3 tokens.'); return; }
+    _sess = { ut, ct, ck, url: 'https://ui.boondmanager.com/api' };
+    const r = await bFetch('/resources?number=1');
+    if (!r.ok) { _sess = null; showErr(`Tokens invalides (${r.status || 'réseau'}) — vérifiez vos tokens.`); return; }
+    const cipher = await encSess(_sess, pw);
+    localStorage.setItem(SK, JSON.stringify({ email, cipher }));
+    loginOk(email);
+  } catch (e) { showErr('Erreur : ' + e.message); }
+}
+
+function loginOk(email) {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('appWrap').style.display = 'flex';
+  document.getElementById('hUser').textContent = email.split('@')[0];
+  document.getElementById('sessInfo').textContent = 'Connecté en tant que ' + email;
+  addMsg('ai', '<p>👋 Bonjour ! Connecté à BoondManager. Posez-moi vos questions !</p>');
+}
+
+function doLogout() {
+  if (!confirm('Se déconnecter ?')) return;
+  localStorage.removeItem(SK); _sess = null;
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('appWrap').style.display = 'none';
+  document.getElementById('lPw').value = '';
+  document.getElementById('msgs').innerHTML = '<div class="empty-state" id="emptyState"><div style="font-size:44px;margin-bottom:8px">🤖</div><div style="font-size:20px;font-weight:800;color:#dde3f0">Bonjour, je suis BoondAI</div><div style="font-size:13px;line-height:1.6;max-width:380px">Posez-moi vos questions sur BoondManager.</div></div>';
+  document.getElementById('suggs').style.display = 'flex';
+  switchTab('chat', document.querySelectorAll('.tab')[0]);
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active'); el.classList.add('active');
+}
+
+function addMsg(role, html) {
+  document.getElementById('emptyState')?.remove();
+  document.getElementById('suggs').style.display = 'none';
+  const d = document.createElement('div'); d.className = 'msg';
+  d.innerHTML = `<div class="av ${role}">${role === 'user' ? '👤' : '✦'}</div><div class="mbody"><div class="mname ${role}">${role === 'user' ? 'Vous' : 'BoondAI'}</div><div class="mtext">${html}</div></div>`;
+  document.getElementById('msgs').appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  return d;
+}
+
+function md(t) {
+  return '<p>' + t
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/```([\s\S]*?)```/g, '</p><pre>$1</pre><p>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^#{1,3} (.+)$/gm, '<strong>$1</strong>')
+    .replace(/^\- (.+)$/gm, '<li>$1</li>')
+    .replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+}
+
+function ask(t) { document.getElementById('chatInput').value = t; sendMsg(); }
+
+let _history = [], _busy = false;
+
+const SYS_PLAN = `Tu es BoondAI. Retourne UNIQUEMENT un JSON valide:
+{"calls":[{"path":"/resources?number=1","method":"GET"}],"plan":"..."}
+Endpoints: /resources?number=1 (total), /resources?number=1&typeId=1 (actifs), /resources?number=1&typeId=2 (sortis), /resources?number=20 (liste), /projects?number=1, /projects?number=1&stateId=1 (en cours), /projects?number=1&stateId=2 (terminés), /invoices?number=1, /invoices?number=1&stateId=0 (impayées), /invoices?number=20&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD, /times?number=20&startDate=YYYY-MM-DD, /contacts?number=20&keywords=texte, /companies?number=20.
+RÈGLES: comptage → number=1 + lire meta.totals.rows. isActive n'existe PAS. Actifs=typeId=1. JSON uniquement.`;
+const SYS_ANS = `Tu es BoondAI, assistant BoondManager. Réponds en français, clairement et de façon structurée. Utilise des listes ou tableaux si pertinent.`;
+
+async function sendMsg() {
+  const inp = document.getElementById('chatInput');
+  const text = inp.value.trim(); if (!text || _busy) return;
+  inp.value = ''; inp.style.height = 'auto';
+  _busy = true; document.getElementById('sendBtn').disabled = true;
+  addMsg('user', '<p>' + text.replace(/</g, '&lt;') + '</p>');
+  _history.push({ role: 'user', content: text });
+  const typing = addMsg('ai', '<div class="typing"><span></span><span></span><span></span></div>');
+  try {
+    let plan;
+    try {
+      const raw = await callClaude([{ role: 'user', content: text }], SYS_PLAN, 400);
+      plan = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    } catch { plan = guess(text); }
+
+    const results = [];
+    for (const c of (plan.calls || [])) {
+      const r = await bFetch(c.path, c.method || 'GET');
+      results.push({ path: c.path, ok: r.ok, data: r.data });
+    }
+
+    let answer;
+    try {
+      answer = await callClaude(
+        [..._history.slice(0, -1), { role: 'user', content: `Question: "${text}"\n\nDonnées API:\n${JSON.stringify(results, null, 2)}\n\nRéponds en français clairement.` }],
+        SYS_ANS, 1000);
+    } catch { answer = fallback(results); }
+
+    typing.remove();
+    addMsg('ai', md(answer));
+    _history.push({ role: 'assistant', content: answer });
+  } catch (e) {
+    typing.remove();
+    addMsg('ai', '<p>❌ ' + e.message + '</p>');
+  }
+  _busy = false; document.getElementById('sendBtn').disabled = false;
+}
+
+function guess(t) {
+  const l = t.toLowerCase();
+  if (l.includes('actif') || l.includes('en poste')) return { calls: [{ path: '/resources?number=1&typeId=1' }] };
+  if (l.includes('sorti') || l.includes('inactif')) return { calls: [{ path: '/resources?number=1&typeId=2' }] };
+  if (l.includes('ressource') || l.includes('collaborateur')) return { calls: [{ path: '/resources?number=1' }] };
+  if (l.includes('projet')) return { calls: [{ path: '/projects?number=1' }] };
+  if (l.includes('facture') || l.includes('impayé')) return { calls: [{ path: '/invoices?number=1' }] };
+  if (l.includes('temps') || l.includes('timesheet')) return { calls: [{ path: '/times?number=20' }] };
+  if (l.includes('contact')) return { calls: [{ path: '/contacts?number=20' }] };
+  if (l.includes('société') || l.includes('client')) return { calls: [{ path: '/companies?number=20' }] };
+  return { calls: [{ path: '/resources?number=1' }] };
+}
+
+function fallback(results) {
+  if (!results.length) return 'Aucune donnée récupérée.';
+  const r = results[0]; if (!r.ok) return '❌ Erreur : ' + JSON.stringify(r.data);
+  const total = r.data?.meta?.totals?.rows;
+  if (total !== undefined) return `**${total} résultat(s)** au total.`;
+  const data = r.data?.data || r.data;
+  if (Array.isArray(data)) {
+    return `**${data.length} résultat(s)**\n\n` + data.slice(0, 10).map(item => {
+      const a = item.attributes || item;
+      return '- ' + (a.name || (a.firstName ? a.firstName + ' ' + a.lastName : null) || a.title || '—');
+    }).join('\n');
+  }
+  return JSON.stringify(data, null, 2).substring(0, 400);
+}
+
+async function saveAnthropicKey() {
+  const key = document.getElementById('anthropicKeyInput').value.trim();
+  const status = document.getElementById('keyStatus');
+  if (!key.startsWith('sk-ant-')) {
+    status.style.color = '#f45b5b';
+    status.textContent = '❌ Format invalide — doit commencer par sk-ant-';
+    return;
+  }
+  status.style.color = '#556080';
+  status.textContent = '⏳ Vérification…';
+  try {
+    const res = await fetch('/set-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      status.style.color = '#00e5a0';
+      status.textContent = '✅ Clé sauvegardée — IA activée !';
+      document.getElementById('tabParams').textContent = '🔑 Paramètres ✅';
+    } else {
+      status.style.color = '#f45b5b';
+      status.textContent = '❌ ' + (data.error || 'Erreur');
+    }
+  } catch(e) {
+    status.style.color = '#f45b5b';
+    status.textContent = '❌ Erreur réseau : ' + e.message;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const stored = JSON.parse(localStorage.getItem(SK) || 'null');
+  if (stored) {
+    document.getElementById('lEmail').value = stored.email;
+    document.getElementById('lsub').textContent = 'Bon retour 👋 — entrez votre mot de passe';
+    document.getElementById('lPwLbl').textContent = 'Mot de passe BoondAI';
+    document.getElementById('lPw').placeholder = 'Votre mot de passe';
+    _returning = true;
+    setTimeout(() => document.getElementById('lPw').focus(), 100);
+  }
+});
+</script>
+</body>
+</html>
