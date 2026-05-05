@@ -490,7 +490,7 @@ async function doLogin() {
     const ct = document.getElementById('lCT').value.trim();
     const ck = document.getElementById('lCK').value.trim();
     if (!ut || !ct || !ck) { showErr('Remplissez les 3 tokens.'); return; }
-    _sess = { ut, ct, ck, url: 'https://ui.boondmanager.com/api' };
+    _sess = { email, password };
     const r = await bFetch('/resources?number=1');
     if (!r.ok) { _sess = null; showErr(`Tokens invalides (${r.status || 'réseau'}) — vérifiez vos tokens.`); return; }
     const cipher = await encSess(_sess, pw);
