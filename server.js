@@ -5,7 +5,6 @@ const path = require('path');
 
 const PORT = process.env.PORT || 3000;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
-let ANTHROPIC_KEY_RUNTIME = '';
 
 function httpsRequest(url, options, body) {
   return new Promise((resolve, reject) => {
@@ -54,20 +53,23 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
+  // Serve HTML
   if (req.method === 'GET' && url.pathname === '/') {
     const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html); return;
   }
 
-  if (url.pathname.startsWith('/boond/') && req.method === 'POST') {
+  // BoondManager proxy - BasicAuth
+  if (url.pathname.startsWith('/boond') && req.method === 'POST') {
     const body = await readBody(req);
     const { email, password, boondPath } = body;
-    if (!email || !password) { json(res, 400, { error: 'Email et mot de passe requis' }); return; }
+    if (!email || !password || !boondPath) {
+      json(res, 400, { error: 'email, password et boondPath requis' }); return;
+    }
     const credentials = Buffer.from(email + ':' + password).toString('base64');
-    const apiPath = boondPath + (url.search || '');
     try {
-      const r = await httpsRequest('https://ui.boondmanager.com/api' + apiPath, {
+      const r = await httpsRequest('https://ui.boondmanager.com/api' + boondPath, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + credentials }
       });
@@ -76,21 +78,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname === '/set-key' && req.method === 'POST') {
-    const body = await readBody(req);
-    if (!body.key || !body.key.startsWith('sk-ant-')) { json(res, 400, { error: 'Clé invalide' }); return; }
-    ANTHROPIC_KEY_RUNTIME = body.key;
-    json(res, 200, { ok: true }); return;
-  }
-
+  // Claude proxy
   if (url.pathname === '/claude' && req.method === 'POST') {
-    const key = ANTHROPIC_KEY_RUNTIME || ANTHROPIC_KEY;
-    if (!key) { json(res, 500, { error: 'Clé Anthropic non configurée' }); return; }
+    if (!ANTHROPIC_KEY) { json(res, 500, { error: 'Clé Anthropic non configurée sur le serveur' }); return; }
     const body = await readBody(req);
     try {
       const r = await httpsRequest('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' }
+        headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' }
       }, body);
       json(res, r.status, r.body);
     } catch(e) { json(res, 500, { error: e.message }); }
@@ -101,6 +96,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n✅ BoondAI lancé sur http://localhost:${PORT}`);
-  console.log(`   Ouvrez votre navigateur sur http://localhost:${PORT}\n`);
+  console.log(`\n✅ BoondAI sur http://localhost:${PORT}\n`);
 });
