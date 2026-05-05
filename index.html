@@ -367,7 +367,7 @@ async function sendMsg() {
     try { const raw=await callClaude([{role:'user',content:text}],SYS_PLAN,400); plan=JSON.parse(raw.replace(/```json|```/g,'').trim()); }
     catch { plan=guess(text); }
     const results=[];
-    for(const c of(plan.calls||[])) { const r=await bFetch(c.path); results.push({path:c.path,ok:r.ok,data:r.data}); }
+    for(const c of(plan.calls||[])) { const r=await bFetchAll(c.path); results.push({path:c.path,ok:r.ok,data:r.data}); }
     let answer;
     try { answer=await callClaude([..._history.slice(0,-1),{role:'user',content:`Question: "${text}"\n\nDonnées:\n${JSON.stringify(results,null,2)}\n\nRéponds en français.`}],SYS_ANS,1000); }
     catch { answer=fallback(results); }
