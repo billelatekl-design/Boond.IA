@@ -284,9 +284,14 @@ function ask(t) {
   sendMsg();
 }
 
+function getToday() {
+  return new Date().toISOString().split('T')[0];
+}
+
 function guessPath(t) {
   var l = t.toLowerCase();
-  if (l.indexOf('projet') >= 0) return '/projects';
+  var today = getToday();
+  if (l.indexOf('projet') >= 0) return '/projects?period=running&startDate=' + today + '&endDate=' + today;
   if (l.indexOf('facture') >= 0 || l.indexOf('impay') >= 0) return '/invoices';
   if (l.indexOf('absence') >= 0 || l.indexOf('cong') >= 0) return '/absences';
   if (l.indexOf('temps') >= 0 || l.indexOf('timesheet') >= 0 || l.indexOf('saisie') >= 0) return '/times';
@@ -321,16 +326,10 @@ function sendMsg() {
 
     var actifs, inactifs, nomActifs;
 
-    if (path === '/projects') {
-      // Projet en cours = endDate >= aujourd'hui
-      actifs = data.filter(function(i){
-        var a = i.attributes||{};
-        return a.endDate && a.endDate >= today;
-      });
-      inactifs = data.filter(function(i){
-        var a = i.attributes||{};
-        return a.endDate && a.endDate < today;
-      });
+    if (path.indexOf('/projects') >= 0) {
+      // Projets deja filtres "en cours" par l'API (period=running)
+      actifs = data;
+      inactifs = [];
       nomActifs = actifs.map(function(i){
         var a = i.attributes||{};
         return a.reference || '';
