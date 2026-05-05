@@ -213,6 +213,26 @@ async function bCount(boondPath, filterField, filterValue) {
   } catch(e) { return { error: e.message }; }
 }
 
+async function bFetchAll(boondPath) {
+  if (!_sess) return { ok: false, data: [] };
+  try {
+    // First call to get total
+    const first = await bFetch(boondPath + (boondPath.includes('?') ? '&' : '?') + 'number=500&page=1');
+    if (!first.ok) return first;
+    const total = first.data?.meta?.totals?.rows || 0;
+    let allData = first.data?.data || [];
+    // If more than 500, paginate
+    if (total > 500) {
+      const pages = Math.ceil(total / 500);
+      for (let p = 2; p <= pages; p++) {
+        const r = await bFetch(boondPath + (boondPath.includes('?') ? '&' : '?') + 'number=500&page=' + p);
+        if (r.ok && r.data?.data) allData = allData.concat(r.data.data);
+      }
+    }
+    return { ok: true, data: { data: allData, meta: { totals: { rows: total } } } };
+  } catch(e) { return { ok: false, data: { error: e.message } }; }
+}
+
 async function bFetch(boondPath) {
   if (!_sess) return { ok: false, data: { error: 'Non connecté' } };
   try {
