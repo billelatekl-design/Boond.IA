@@ -201,6 +201,18 @@ function doLogout() {
 }
 
 // ── API ────────────────────────────────────────────────────────────────────
+async function bCount(boondPath, filterField, filterValue) {
+  if (!_sess) return { ok: false, data: { error: 'Non connecté' } };
+  try {
+    const res = await fetch('/boond-count', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: _sess.email, password: _sess.password, boondPath, filterField, filterValue })
+    });
+    return await res.json();
+  } catch(e) { return { error: e.message }; }
+}
+
 async function bFetch(boondPath) {
   if (!_sess) return { ok: false, data: { error: 'Non connecté' } };
   try {
@@ -255,7 +267,7 @@ let _history=[], _busy=false;
 
 const SYS_PLAN=`Tu es BoondAI. Retourne UNIQUEMENT un JSON valide:
 {"calls":[{"path":"/resources?number=1"}],"plan":"..."}
-Endpoints: /resources?number=1 (total), /resources?number=1&state=1 (actifs), /resources?number=1&typeId=2 (sortis), /resources?number=20 (liste), /projects?number=1, /projects?number=1&stateId=1 (en cours), /invoices?number=1, /invoices?number=1&stateId=0 (impayées), /times?number=20, /contacts?number=20, /companies?number=20, /absences?number=20, /opportunities?number=20, /expenses?number=20.
+Endpoints: /resources?number=1 (total), /resources?number=500&filterField=state&filterValue=1 (actifs), /resources?number=1&typeId=2 (sortis), /resources?number=20 (liste), /projects?number=1, /projects?number=1&stateId=1 (en cours), /invoices?number=1, /invoices?number=1&stateId=0 (impayées), /times?number=20, /contacts?number=20, /companies?number=20, /absences?number=20, /opportunities?number=20, /expenses?number=20.
 RÈGLES: comptage=number=1+meta.totals.rows. Actifs=typeId=1. JSON uniquement.`;
 
 const SYS_ANS=`Tu es BoondAI, assistant BoondManager. Réponds en français, clairement et de façon structurée.`;
@@ -285,7 +297,7 @@ async function sendMsg() {
 
 function guess(t) {
   const l=t.toLowerCase();
-  if(l.includes('actif')||l.includes('en poste'))return{calls:[{path:'/resources?number=1&state=1'}]};
+  if(l.includes('actif')||l.includes('en poste'))return{calls:[{path:'/resources?number=500&filterField=state&filterValue=1'}]};
   if(l.includes('sorti'))return{calls:[{path:'/resources?number=1&typeId=2'}]};
   if(l.includes('ressource')||l.includes('collaborateur'))return{calls:[{path:'/resources?number=1'}]};
   if(l.includes('projet'))return{calls:[{path:'/projects?number=1'}]};
