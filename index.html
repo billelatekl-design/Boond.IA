@@ -274,29 +274,20 @@ header{display:flex;align-items:center;padding:0 32px;height:60px;border-bottom:
 <!-- LOGIN -->
 <div id="loginWrap">
   <div class="card">
-    <div class="logo">Boond<span>AI</span></div>
+    <div class="logo">BOOND<span>AI</span></div>
     <div class="logo-line"></div>
     <div class="sub" id="lsub">Connectez-vous à votre assistant BoondManager</div>
     <div class="fl">
       <label>Email</label>
-      <input type="email" id="lEmail" placeholder="nom@entreprise.com" oninput="onEmail()" />
-      <div class="hint" id="lEmailH"></div>
+      <input type="email" id="lEmail" placeholder="nom@entreprise.com" />
     </div>
     <div class="fl">
-      <label id="lPwLbl">Mot de passe BoondAI <span style="font-weight:400;font-size:10px">(1 maj · 1 chiffre · 1 symbole · 8 min)</span></label>
-      <input type="password" id="lPw" placeholder="Choisissez un mot de passe sécurisé" oninput="onPw()" onkeydown="if(event.key==='Enter')doLogin()" />
-      <div class="hint" id="lPwH"></div>
+      <label>Mot de passe BoondManager</label>
+      <input type="password" id="lPw" placeholder="Votre mot de passe" />
     </div>
-    <div id="jwtBlock" style="display:none">
-      <hr class="sep">
-      <div class="linfo show">🔑 Première connexion — entrez vos 3 tokens BoondManager.<br>Ils seront chiffrés avec votre mot de passe et sauvegardés localement.</div>
-      <div class="fl"><label>User Token (Profil → Config → API)</label><input type="password" id="lUT" placeholder="Token utilisateur" /></div>
-      <div class="fl"><label>Client Token (Admin → API/Sandbox)</label><input type="password" id="lCT" placeholder="Token client" /></div>
-      <div class="fl"><label>Client Key (Admin → API/Sandbox)</label><input type="password" id="lCK" placeholder="Clé secrète" /></div>
-    </div>
-    <button class="lbtn" id="lBtn" onclick="doLogin()">Se connecter</button>
-    <div class="lerr" id="lErr"></div>
-    <div class="lfooter">Tokens chiffrés (AES-GCM) avec votre mot de passe — jamais en clair.</div>
+    <div id="lErrBox" style="display:none;color:#c0392b;font-size:11px;margin-top:8px;font-family:var(--sans);letter-spacing:0.5px"></div>
+    <button class="lbtn" id="lBtn" style="margin-top:16px;cursor:pointer" onclick="doLogin()">SE CONNECTER</button>
+    <div class="lfooter">Connexion sécurisée via BoondManager</div>
   </div>
 </div>
 
