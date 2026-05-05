@@ -224,8 +224,10 @@ function bFetchAll(boondPath) {
   return bFetch(boondPath + sep + 'number=30&page=1').then(function(first) {
     if (!first.ok) return first;
     var total = (first.data && first.data.meta && first.data.meta.totals) ? first.data.meta.totals.rows : 0;
-    var allData = (first.data && first.data.data) ? first.data.data : [];
+    var allData = (first.data && first.data.data) ? first.data.data.slice() : [];
+    if (total === 0) total = allData.length;
     var pages = Math.ceil(total / 30);
+    if (pages <= 1) return {ok: true, data: {data: allData, meta: {totals: {rows: total}}}};
     var promises = [];
     for (var p = 2; p <= pages; p++) {
       promises.push(bFetch(boondPath + sep + 'number=30&page=' + p));
