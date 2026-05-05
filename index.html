@@ -309,43 +309,31 @@ function sendMsg() {
   _history.push({role: 'user', content: text});
   var typing = addMsg('ai', '<div class="typing"><span></span><span></span><span></span></div>');
 
-  Promise.resolve({calls: [{path: guessPath(text)}]}).then(function(plan) {
-    var calls = plan.calls || [{path: guessPath(text)}];
-    var promises = calls.map(function(c) {
-      return bFetchAll(c.path).then(function(r) {
-        return {path: c.path, ok: r.ok, data: r.data};
-      });
-    });
-    return Promise.all(promises);
-  }).then(function(results) {
-    var dataStr = JSON.stringify(results, null, 2);
-    var answerMessages = _history.slice(0, -1).concat([{
+  bFetchAll(guessPath(text)).then(function(r) {
+    var results = [{path: guessPath(text), ok: r.ok, data: r.data}];
+    var dataStr = JSON.stringify(results);
+    var msgs = _history.slice(0,-1).concat([{
       role: 'user',
-      content: 'Question: "' + text + '"\n\nDonnees API BoondManager:\n' + dataStr + '\n\nReponds en francais.'
+      content: 'Question: "' + text + '"\n\nDonnees BoondManager:\n' + dataStr + '\n\nReponds en francais, sois concis et precis.'
     }]);
-    return callClaude(answerMessages, SYS_ANS).then(function(answer) {
+    return callClaude(msgs, SYS_ANS).then(function(answer) {
       typing.remove();
       addMsg('ai', md(answer));
       _history.push({role: 'assistant', content: answer});
     }).catch(function(e) {
       typing.remove();
-      var r = results[0];
-      if (r && r.ok && r.data && r.data.data) {
+      if (r.ok && r.data && r.data.data) {
         var data = r.data.data;
-        var actifs = data.filter(function(i) { return i.attributes && i.attributes.state === 1; }).length;
-        var inactifs = data.filter(function(i) { return i.attributes && i.attributes.state === 0; }).length;
-        var msg = '<p><strong>' + data.length + ' enregistrements</strong> recuperes.</p>';
-        if (actifs > 0 || inactifs > 0) {
-          msg += '<ul><li>Actifs : <strong>' + actifs + '</strong></li><li>Inactifs : <strong>' + inactifs + '</strong></li></ul>';
-        }
-        addMsg('ai', msg);
+        var a1 = data.filter(function(i){return i.attributes&&i.attributes.state===1;}).length;
+        var a0 = data.filter(function(i){return i.attributes&&i.attributes.state===0;}).length;
+        addMsg('ai', '<p><strong>' + data.length + ' enregistrements</strong><br>Actifs: <strong>' + a1 + '</strong> | Inactifs: <strong>' + a0 + '</strong></p>');
       } else {
-        addMsg('ai', '<p>Erreur Claude : ' + e.message + '</p>');
+        addMsg('ai', '<p>Erreur: ' + e.message + '</p>');
       }
     });
   }).catch(function(e) {
     typing.remove();
-    addMsg('ai', '<p>Erreur : ' + e.message + '</p>');
+    addMsg('ai', '<p>Erreur: ' + e.message + '</p>');
   }).finally(function() {
     _busy = false;
     document.getElementById('sendBtn').disabled = false;
