@@ -103,12 +103,12 @@ const server = http.createServer(async (req, res) => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + credentials }
       });
+      const data = r.body?.data || [];
       if (filterField && filterValue !== undefined) {
-        const data = r.body?.data || [];
-        const filtered = data.filter(item => item.attributes?.[filterField] == filterValue);
-        json(res, r.status, { count: filtered.length, total: r.body?.meta?.totals?.rows });
+        const filtered = data.filter(item => String(item.attributes?.[filterField]) === String(filterValue));
+        json(res, r.status, { data: filtered, meta: { totals: { rows: filtered.length } } });
       } else {
-        json(res, r.status, { count: r.body?.meta?.totals?.rows });
+        json(res, r.status, r.body);
       }
     } catch(e) { json(res, 500, { error: e.message }); }
     return;
