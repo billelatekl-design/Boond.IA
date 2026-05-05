@@ -390,13 +390,25 @@ function guess(t) {
 }
 
 function fallback(results) {
-  if(!results.length)return'Aucune donnée.';
+  if(!results.length)return'Aucune donnée disponible.';
   const r=results[0]; if(!r.ok)return'❌ Erreur : '+JSON.stringify(r.data);
-  const total=r.data?.meta?.totals?.rows;
-  if(total!==undefined)return`**${total} résultat(s)** au total.`;
-  const data=r.data?.data||r.data;
-  if(Array.isArray(data))return`**${data.length} résultat(s)**\n\n`+data.slice(0,10).map(i=>{const a=i.attributes||i;return'- '+(a.name||(a.firstName?a.firstName+' '+a.lastName:null)||a.title||'—');}).join('\n');
-  return JSON.stringify(data,null,2).substring(0,400);
+  const data=r.data?.data||[];
+  if(Array.isArray(data)&&data.length>0){
+    const actifs=data.filter(i=>i.attributes?.state===1).length;
+    const inactifs=data.filter(i=>i.attributes?.state===0).length;
+    const total=r.data?.meta?.totals?.rows||data.length;
+    let res='**'+data.length+' enregistrements reçus** sur '+total+' au total.
+
+';
+    if(actifs>0||inactifs>0) res+='- Actifs (state=1) : **'+actifs+'**
+- Inactifs (state=0) : **'+inactifs+'**
+
+';
+    res+=data.slice(0,10).map(i=>{const a=i.attributes||i;return'- '+(a.firstName?a.firstName+' '+a.lastName:a.name||a.title||'—');}).join('
+');
+    return res;
+  }
+  return JSON.stringify(r.data,null,2).substring(0,400);
 }
 </script>
 </body>
