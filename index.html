@@ -410,16 +410,18 @@ async function buildJwt(ut, ct, ck) {
 // ── BoondManager — appelé directement depuis le navigateur ────────────
 async function bFetch(path, method = 'GET', body = null) {
   if (!_sess) return { ok: false, data: { error: 'Non connecté' } };
-  const jwt = await buildJwt(_sess.ut, _sess.ct, _sess.ck);
-  const base = _sess.url || 'https://ui.boondmanager.com/api';
-  const opts = { method, headers: { 'Content-Type': 'application/json', 'X-Jwt-Client-BoondManager': jwt } };
-  if (body) opts.body = JSON.stringify(body);
+  const opts = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: _sess.email, password: _sess.password, boondPath: path })
+  };
   try {
-    const res = await fetch(base + path, opts);
-    let data; try { data = await res.json(); } catch { data = { raw: 'non-json' }; }
+    const res = await fetch('/boond' + path, opts);
+    const data = await res.json();
     return { ok: res.ok, status: res.status, data };
   } catch (e) { return { ok: false, data: { error: e.message } }; }
 }
+
 
 async function callClaude(messages, system, max = 1000) {
   const res = await fetch('/claude', {
