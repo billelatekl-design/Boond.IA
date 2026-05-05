@@ -245,7 +245,7 @@ function callClaude(messages, system) {
   return fetch('/claude', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({model: 'claude-sonnet-4-5', max_tokens: 1500, system: system, messages: messages})
+    body: JSON.stringify({model: 'claude-sonnet-4-6', max_tokens: 1500, system: system, messages: messages})
   }).then(function(r) {
     if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || r.status); });
     return r.json().then(function(d) { return d.content && d.content[0] ? d.content[0].text : ''; });
