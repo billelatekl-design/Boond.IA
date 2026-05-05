@@ -265,10 +265,72 @@ function ask(t) { document.getElementById('chatInput').value=t; sendMsg(); }
 
 let _history=[], _busy=false;
 
-const SYS_PLAN=`Tu es BoondAI. Retourne UNIQUEMENT un JSON valide:
-{"calls":[{"path":"/resources?number=1"}],"plan":"..."}
-Endpoints: /resources?number=1 (total), /resources?number=500&filterField=state&filterValue=1 (actifs), /resources?number=1&typeId=2 (sortis), /resources?number=20 (liste), /projects?number=1, /projects?number=1&stateId=1 (en cours), /invoices?number=1, /invoices?number=1&stateId=0 (impayées), /times?number=20, /contacts?number=20, /companies?number=20, /absences?number=20, /opportunities?number=20, /expenses?number=20.
-RÈGLES: comptage=number=1+meta.totals.rows. Actifs=typeId=1. JSON uniquement.`;
+const SYS_PLAN=`Tu es BoondAI, expert API BoondManager. Retourne UNIQUEMENT un JSON valide.
+
+FORMAT: {"calls":[{"path":"/resources?number=500"}],"plan":"..."}
+
+ENDPOINTS PRINCIPAUX:
+- /resources?number=500 → toutes les ressources (attributs: state, firstName, lastName, title, email1, availability, typeOf)
+- /projects?number=500 → tous les projets (attributs: state, title, reference, startDate, endDate)
+- /invoices?number=500 → toutes les factures (attributs: state, totalExcludingTax, totalIncludingTax, invoiceDate)
+- /times?number=100&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD → saisies de temps
+- /times-reports?number=100 → feuilles de temps
+- /absences?number=100&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD → absences
+- /absences-reports?number=100 → demandes d'absences
+- /contacts?number=100&keywords=texte → contacts CRM
+- /companies?number=100&keywords=texte → sociétés
+- /opportunities?number=100 → opportunités (attributs: state, title)
+- /positionings?number=100 → positionnements
+- /candidates?number=100&keywords=texte → candidats
+- /expenses?number=100 → dépenses
+- /expenses-reports?number=100 → notes de frais
+- /orders?number=100 → commandes
+- /payments?number=100 → paiements
+- /provider-invoices?number=100 → factures fournisseurs
+- /agencies?number=100 → agences
+- /poles?number=100 → pôles
+- /business-units?number=100 → business units
+- /reporting-resources?number=100 → reporting ressources
+- /reporting-projects?number=100 → reporting projets
+- /reporting-synthesis?number=100 → reporting synthèse
+- /planning-absences?number=100 → planning absences
+- /application/current-user → utilisateur connecté
+- /resources/{id}/times-reports → feuilles de temps d'une ressource
+- /resources/{id}/absences-reports → absences d'une ressource
+- /resources/{id}/positionings → positionnements d'une ressource
+- /resources/{id}/projects → projets d'une ressource
+
+VALEURS DES CHAMPS STATE:
+- resources: state=1 (actif/en cours), state=0 (inactif/sorti)
+- projects: state=1 (en cours), state=0 (terminé/archivé)  
+- invoices: state=0 (non payée), state=1 (payée), state=2 (avoir)
+- opportunities: state=1 (ouverte), state=0 (fermée)
+
+PARAMÈTRES UTILES:
+- number=N → nombre de résultats (max 500)
+- page=N → pagination
+- keywords=texte → recherche textuelle
+- startDate=YYYY-MM-DD, endDate=YYYY-MM-DD → filtres de dates
+- periodDynamic=thisMonth|lastMonth|thisWeek|lastWeek|thisYear|lastYear
+
+RÈGLE: Toujours récupérer 500 résultats max pour avoir toutes les données et filtrer correctement.
+Retourne UNIQUEMENT le JSON, rien d'autre.`;
+
+const SYS_ANS=`Tu es BoondAI, assistant expert BoondManager. Réponds en français, clairement et de façon structurée.
+
+RÈGLES D'ANALYSE OBLIGATOIRES:
+1. RESSOURCES ACTIVES/EN COURS = celles dont attributes.state === 1
+2. RESSOURCES SORTIES/INACTIVES = celles dont attributes.state === 0
+3. PROJETS EN COURS = ceux dont attributes.state === 1
+4. PROJETS TERMINÉS = ceux dont attributes.state === 0
+5. FACTURES IMPAYÉES = celles dont attributes.state === 0
+6. FACTURES PAYÉES = celles dont attributes.state === 1
+
+IMPORTANT: Ne JAMAIS utiliser meta.totals.rows pour répondre à des questions filtrées.
+Toujours compter manuellement dans le tableau data[] en filtrant sur le bon champ state.
+Si data[] contient 500 éléments et qu'il y a plus de résultats, le mentionner.
+
+Présente les résultats de façon claire: listes, tableaux si pertinent, chiffres précis.`;
 
 const SYS_ANS=`Tu es BoondAI, assistant BoondManager. Réponds en français, clairement et de façon structurée.`;
 
