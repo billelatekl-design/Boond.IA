@@ -310,11 +310,33 @@ function sendMsg() {
   var typing = addMsg('ai', '<div class="typing"><span></span><span></span><span></span></div>');
 
   bFetchAll(guessPath(text)).then(function(r) {
-    var results = [{path: guessPath(text), ok: r.ok, data: r.data}];
-    var dataStr = JSON.stringify(results);
+    var data = (r.ok && r.data && r.data.data) ? r.data.data : [];
+    var totalDB = (r.data && r.data.meta && r.data.meta.totals) ? r.data.meta.totals.rows : data.length;
+
+    // Pre-calculate — Claude must use these exact numbers
+    var actifs = data.filter(function(i){return i.attributes && i.attributes.state===1;});
+    var inactifs = data.filter(function(i){return i.attributes && i.attributes.state===0;});
+    var nomActifs = actifs.map(function(i){
+      var a = i.attributes||{};
+      return (a.firstName||'') + ' ' + (a.lastName||'');
+    }).filter(function(n){return n.trim();});
+
+    var stats = {
+      totalDansBase: totalDB,
+      totalRecuperes: data.length,
+      actifs: actifs.length,
+      inactifs: inactifs.length,
+      nomsActifs: nomActifs,
+      items: data.map(function(i){
+        var a = i.attributes||{};
+        return {state: a.state, firstName: a.firstName, lastName: a.lastName, title: a.title, reference: a.reference, totalExcludingTax: a.totalExcludingTax};
+      })
+    };
+
+    var dataStr = JSON.stringify(stats);
     var msgs = _history.slice(0,-1).concat([{
       role: 'user',
-      content: 'Question: "' + text + '"\n\nDonnees BoondManager:\n' + dataStr + '\n\nReponds en francais, sois concis et precis.'
+      content: 'Question: "' + text + '"\n\nSTATISTIQUES PRE-CALCULEES (utilise ces chiffres exacts, ne recalcule pas):\n' + dataStr + '\n\nReponds en francais, sois direct et concis.'
     }]);
     return callClaude(msgs, SYS_ANS).then(function(answer) {
       typing.remove();
@@ -322,14 +344,7 @@ function sendMsg() {
       _history.push({role: 'assistant', content: answer});
     }).catch(function(e) {
       typing.remove();
-      if (r.ok && r.data && r.data.data) {
-        var data = r.data.data;
-        var a1 = data.filter(function(i){return i.attributes&&i.attributes.state===1;}).length;
-        var a0 = data.filter(function(i){return i.attributes&&i.attributes.state===0;}).length;
-        addMsg('ai', '<p><strong>' + data.length + ' enregistrements</strong><br>Actifs: <strong>' + a1 + '</strong> | Inactifs: <strong>' + a0 + '</strong></p>');
-      } else {
-        addMsg('ai', '<p>Erreur: ' + e.message + '</p>');
-      }
+      addMsg('ai', '<p>Total: <strong>' + totalDB + '</strong> | Actifs: <strong>' + actifs.length + '</strong> | Inactifs: <strong>' + inactifs.length + '</strong></p>');
     });
   }).catch(function(e) {
     typing.remove();
