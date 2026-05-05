@@ -316,24 +316,52 @@ function sendMsg() {
   bFetchAll(guessPath(text)).then(function(r) {
     var data = (r.ok && r.data && r.data.data) ? r.data.data : [];
     var totalDB = (r.data && r.data.meta && r.data.meta.totals) ? r.data.meta.totals.rows : data.length;
+    var today = new Date().toISOString().split('T')[0];
+    var path = guessPath(text);
 
-    // Pre-calculate — Claude must use these exact numbers
-    var actifs = data.filter(function(i){return i.attributes && i.attributes.state===1;});
-    var inactifs = data.filter(function(i){return i.attributes && i.attributes.state===0;});
-    var nomActifs = actifs.map(function(i){
-      var a = i.attributes||{};
-      return (a.firstName||'') + ' ' + (a.lastName||'');
-    }).filter(function(n){return n.trim();});
+    var actifs, inactifs, nomActifs;
+
+    if (path === '/projects') {
+      // Projet en cours = endDate >= aujourd'hui
+      actifs = data.filter(function(i){
+        var a = i.attributes||{};
+        return a.endDate && a.endDate >= today;
+      });
+      inactifs = data.filter(function(i){
+        var a = i.attributes||{};
+        return a.endDate && a.endDate < today;
+      });
+      nomActifs = actifs.map(function(i){
+        var a = i.attributes||{};
+        return a.reference || '';
+      }).filter(function(n){return n.trim();});
+    } else {
+      actifs = data.filter(function(i){return i.attributes && i.attributes.state===1;});
+      inactifs = data.filter(function(i){return i.attributes && i.attributes.state===0;});
+      nomActifs = actifs.map(function(i){
+        var a = i.attributes||{};
+        return ((a.firstName||'') + ' ' + (a.lastName||'')).trim();
+      }).filter(function(n){return n;});
+    }
 
     var stats = {
       totalDansBase: totalDB,
       totalRecuperes: data.length,
-      actifs: actifs.length,
-      inactifs: inactifs.length,
-      nomsActifs: nomActifs,
+      enCours: actifs.length,
+      termines: inactifs.length,
+      nomsEnCours: nomActifs,
       items: data.map(function(i){
         var a = i.attributes||{};
-        return {state: a.state, firstName: a.firstName, lastName: a.lastName, title: a.title, reference: a.reference, totalExcludingTax: a.totalExcludingTax};
+        return {
+          state: a.state,
+          firstName: a.firstName,
+          lastName: a.lastName,
+          title: a.title,
+          reference: a.reference,
+          startDate: a.startDate,
+          endDate: a.endDate,
+          totalExcludingTax: a.totalExcludingTax
+        };
       })
     };
 
