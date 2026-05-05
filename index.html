@@ -366,10 +366,10 @@ function sendMsg() {
     };
 
     var dataStr = JSON.stringify(stats);
-    var msgs = _history.slice(0,-1).concat([{
+    var msgs = [{
       role: 'user',
-      content: 'Question: "' + text + '"\n\nSTATISTIQUES PRE-CALCULEES (utilise ces chiffres exacts, ne recalcule pas):\n' + dataStr + '\n\nReponds en francais, sois direct et concis.'
-    }]);
+      content: 'Question: "' + text + '"\n\nSTATISTIQUES PRE-CALCULEES (utilise UNIQUEMENT ces donnees, ne recalcule pas, ne melange pas avec d autres donnees):\n' + dataStr + '\n\nReponds en francais, sois direct et concis.'
+    }];
     return callClaude(msgs, SYS_ANS).then(function(answer) {
       typing.remove();
       addMsg('ai', md(answer));
