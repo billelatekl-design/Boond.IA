@@ -961,7 +961,7 @@ async function doLogin() {
       document.getElementById('jwtBlock').style.display = 'block';
       showErr('Session expirée — re-saisissez vos tokens.'); return;
     }
-    if (!isStrong(pw)) { showErr('Mot de passe trop faible : 8 car. min, 1 maj, 1 chiffre, 1 symbole.'); return; }
+    
     if (document.getElementById('jwtBlock').style.display === 'none') {
       document.getElementById('jwtBlock').style.display = 'block';
       showErr('Première connexion — entrez vos tokens ci-dessous.'); return;
