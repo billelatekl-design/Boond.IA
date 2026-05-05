@@ -465,7 +465,7 @@ function showErr(msg) {
 async function doLogin() {
   const email = document.getElementById('lEmail').value.trim();
   const pw = document.getElementById('lPw').value;
-  if (!isEmail(email)) { showErr('Email invalide.'); return; }
+  if (!email) { showErr('Entrez votre email.'); return; }
   if (!pw) { showErr('Entrez votre mot de passe.'); return; }
   document.getElementById('lBtn').disabled = true; document.getElementById('lBtn').textContent = 'Connexion…';
   document.getElementById('lErr').className = 'lerr';
@@ -945,7 +945,7 @@ function showErr(msg) {
 async function doLogin() {
   const email = document.getElementById('lEmail').value.trim();
   const pw = document.getElementById('lPw').value;
-  if (!isEmail(email)) { showErr('Email invalide.'); return; }
+  if (!email) { showErr('Entrez votre email.'); return; }
   if (!pw) { showErr('Entrez votre mot de passe.'); return; }
   document.getElementById('lBtn').disabled = true; document.getElementById('lBtn').textContent = 'Connexion…';
   document.getElementById('lErr').className = 'lerr';
