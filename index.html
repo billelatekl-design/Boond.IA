@@ -449,8 +449,10 @@ function onPw() {
 }
 
 function showErr(msg) {
-  const e = document.getElementById('lErr'); e.textContent = msg; e.className = 'lerr show';
-  document.getElementById('lBtn').disabled = false; document.getElementById('lBtn').textContent = 'Se connecter';
+  const el = document.getElementById('lErrBox');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+  const btn = document.getElementById('lBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'SE CONNECTER'; }
 }
 
 async function doLogin() {
