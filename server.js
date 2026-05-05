@@ -92,6 +92,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Filtered count endpoint
+  if (url.pathname === '/boond-count' && req.method === 'POST') {
+    const body = await readBody(req);
+    const { email, password, boondPath, filterField, filterValue } = body;
+    if (!email || !password) { json(res, 400, { error: 'email et password requis' }); return; }
+    const credentials = Buffer.from(email + ':' + password).toString('base64');
+    try {
+      const r = await httpsRequest('https://ui.boondmanager.com/api' + boondPath + '&number=500', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + credentials }
+      });
+      if (filterField && filterValue !== undefined) {
+        const data = r.body?.data || [];
+        const filtered = data.filter(item => item.attributes?.[filterField] == filterValue);
+        json(res, r.status, { count: filtered.length, total: r.body?.meta?.totals?.rows });
+      } else {
+        json(res, r.status, { count: r.body?.meta?.totals?.rows });
+      }
+    } catch(e) { json(res, 500, { error: e.message }); }
+    return;
+  }
+
   json(res, 404, { error: 'Route introuvable' });
 });
 
