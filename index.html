@@ -309,13 +309,7 @@ function sendMsg() {
   _history.push({role: 'user', content: text});
   var typing = addMsg('ai', '<div class="typing"><span></span><span></span><span></span></div>');
 
-  var planMessages = [{role: 'user', content: text}];
-  callClaude(planMessages, SYS_PLAN).then(function(raw) {
-    var clean = raw.replace(/```json/g,'').replace(/```/g,'').trim();
-    return JSON.parse(clean);
-  }).catch(function() {
-    return {calls: [{path: guessPath(text)}], plan: 'fallback'};
-  }).then(function(plan) {
+  Promise.resolve({calls: [{path: guessPath(text)}]}).then(function(plan) {
     var calls = plan.calls || [{path: guessPath(text)}];
     var promises = calls.map(function(c) {
       return bFetchAll(c.path).then(function(r) {
