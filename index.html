@@ -286,17 +286,19 @@ function ask(t) {
 
 function guessPath(t) {
   var l = t.toLowerCase();
-  if (l.indexOf('actif') >= 0 || l.indexOf('en cours') >= 0 || l.indexOf('en poste') >= 0) return '/resources';
-  if (l.indexOf('ressource') >= 0 || l.indexOf('collaborateur') >= 0) return '/resources';
   if (l.indexOf('projet') >= 0) return '/projects';
   if (l.indexOf('facture') >= 0 || l.indexOf('impay') >= 0) return '/invoices';
   if (l.indexOf('absence') >= 0 || l.indexOf('cong') >= 0) return '/absences';
-  if (l.indexOf('temps') >= 0 || l.indexOf('timesheet') >= 0) return '/times';
+  if (l.indexOf('temps') >= 0 || l.indexOf('timesheet') >= 0 || l.indexOf('saisie') >= 0) return '/times';
   if (l.indexOf('contact') >= 0) return '/contacts';
-  if (l.indexOf('soci') >= 0 || l.indexOf('client') >= 0) return '/companies';
-  if (l.indexOf('opportunit') >= 0) return '/opportunities';
+  if (l.indexOf('soci') >= 0 || l.indexOf('client') >= 0 || l.indexOf('entreprise') >= 0) return '/companies';
+  if (l.indexOf('opportunit') >= 0 || l.indexOf('prospect') >= 0) return '/opportunities';
   if (l.indexOf('candidat') >= 0) return '/candidates';
-  if (l.indexOf('d') >= 0 && l.indexOf('pense') >= 0) return '/expenses';
+  if (l.indexOf('commande') >= 0 || l.indexOf('order') >= 0) return '/orders';
+  if (l.indexOf('paiement') >= 0) return '/payments';
+  if (l.indexOf('d\u00e9pense') >= 0 || l.indexOf('frais') >= 0 || l.indexOf('note') >= 0) return '/expenses';
+  if (l.indexOf('agence') >= 0) return '/agencies';
+  if (l.indexOf('p\u00f4le') >= 0 || l.indexOf('pole') >= 0) return '/poles';
   return '/resources';
 }
 
