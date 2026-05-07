@@ -380,11 +380,19 @@ function sendMsg() {
     var tjmNonZero = tjmData.filter(function(i){return i.tjm > 0;});
     var tjmMoyen = tjmNonZero.length > 0 ? Math.round(tjmNonZero.reduce(function(s,i){return s+i.tjm;},0) / tjmNonZero.length) : 0;
 
-    // Disponibilites
-    var dispoImmediat = actifs.filter(function(i){return i.attributes && i.attributes.availability === 'immediate';});
-    var dispoFutur = actifs.filter(function(i){
-      var av = i.attributes && i.attributes.availability;
-      return av && av !== 'immediate' && av > today;
+    // Disponibilites - logique metier correcte
+    // Disponible = inactif (state=0) avec availability=immediate
+    var dispoImmediat = data.filter(function(i){
+      var a = i.attributes||{};
+      return a.state === 0 && a.availability === 'immediate';
+    });
+    // Bientot disponible = actif (state=1) avec une date de fin prochaine (dans les 3 mois)
+    var in3months = new Date();
+    in3months.setMonth(in3months.getMonth() + 3);
+    var in3monthsStr = in3months.toISOString().split('T')[0];
+    var dispoFutur = data.filter(function(i){
+      var a = i.attributes||{};
+      return a.state === 1 && a.availability && a.availability !== 'immediate' && a.availability <= in3monthsStr;
     });
 
     // Repartition par type
