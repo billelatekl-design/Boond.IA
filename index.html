@@ -318,16 +318,16 @@ function sendMsg() {
   _history.push({role: 'user', content: text});
   var typing = addMsg('ai', '<div class="typing"><span></span><span></span><span></span></div>');
 
+  var isTJM = text.toLowerCase().indexOf('tjm') >= 0 || text.toLowerCase().indexOf('tarif') >= 0 || text.toLowerCase().indexOf('taux journalier') >= 0 || text.toLowerCase().indexOf('daily') >= 0;
+
   bFetchAll(guessPath(text)).then(function(r) {
     var data = (r.ok && r.data && r.data.data) ? r.data.data : [];
     var totalDB = (r.data && r.data.meta && r.data.meta.totals) ? r.data.meta.totals.rows : data.length;
-    var today = new Date().toISOString().split('T')[0];
     var path = guessPath(text);
 
     var actifs, inactifs, nomActifs;
 
     if (path.indexOf('/projects') >= 0) {
-      // Projets deja filtres "en cours" par l'API (period=running)
       actifs = data;
       inactifs = [];
       nomActifs = actifs.map(function(i){
@@ -335,12 +335,29 @@ function sendMsg() {
         return a.reference || '';
       }).filter(function(n){return n.trim();});
     } else {
-      actifs = data.filter(function(i){return i.attributes && i.attributes.state===1;});
+      // Si question TJM → filtrer uniquement les actifs
+      if (isTJM) {
+        actifs = data.filter(function(i){return i.attributes && i.attributes.state===1;});
+      } else {
+        actifs = data.filter(function(i){return i.attributes && i.attributes.state===1;});
+      }
       inactifs = data.filter(function(i){return i.attributes && i.attributes.state===0;});
       nomActifs = actifs.map(function(i){
         var a = i.attributes||{};
         return ((a.firstName||'') + ' ' + (a.lastName||'')).trim();
       }).filter(function(n){return n;});
+    }
+
+    var tjmData = [];
+    if (isTJM) {
+      tjmData = actifs.map(function(i){
+        var a = i.attributes||{};
+        return {
+          nom: ((a.firstName||'') + ' ' + (a.lastName||'')).trim(),
+          tjm: a.averageDailyPriceExcludingTax || 0,
+          titre: a.title || ''
+        };
+      }).filter(function(i){return i.nom;});
     }
 
     var stats = {
@@ -349,6 +366,7 @@ function sendMsg() {
       enCours: actifs.length,
       termines: inactifs.length,
       nomsEnCours: nomActifs,
+      tjmRessourcesActives: tjmData,
       items: data.map(function(i){
         var a = i.attributes||{};
         return {
@@ -359,6 +377,7 @@ function sendMsg() {
           reference: a.reference,
           startDate: a.startDate,
           endDate: a.endDate,
+          averageDailyPriceExcludingTax: a.averageDailyPriceExcludingTax,
           totalExcludingTax: a.totalExcludingTax
         };
       })
