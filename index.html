@@ -320,6 +320,15 @@ function sendMsg() {
 
   var isTJM = text.toLowerCase().indexOf('tjm') >= 0 || text.toLowerCase().indexOf('tarif') >= 0 || text.toLowerCase().indexOf('taux journalier') >= 0 || text.toLowerCase().indexOf('daily') >= 0;
 
+  var l = text.toLowerCase();
+  var typeFilter = null;
+  if (l.indexOf('consultant externe') >= 0 || l.indexOf('consultants externes') >= 0) typeFilter = [1];
+  else if (l.indexOf('consultant interne') >= 0 || l.indexOf('consultants internes') >= 0) typeFilter = [0];
+  else if (l.indexOf('consultant') >= 0) typeFilter = [0, 1];
+  else if (l.indexOf('ingenieur d affaire') >= 0 || l.indexOf('ing\u00e9nieur') >= 0) typeFilter = [2];
+  else if (l.indexOf('alternant') >= 0 || l.indexOf('stagiaire') >= 0) typeFilter = [7];
+  else if (l.indexOf('recrutement') >= 0 || l.indexOf('rh') >= 0) typeFilter = [13];
+
   bFetchAll(guessPath(text)).then(function(r) {
     var data = (r.ok && r.data && r.data.data) ? r.data.data : [];
     var totalDB = (r.data && r.data.meta && r.data.meta.totals) ? r.data.meta.totals.rows : data.length;
@@ -335,13 +344,18 @@ function sendMsg() {
         return a.reference || '';
       }).filter(function(n){return n.trim();});
     } else {
-      // Si question TJM → filtrer uniquement les actifs
-      if (isTJM) {
-        actifs = data.filter(function(i){return i.attributes && i.attributes.state===1;});
-      } else {
-        actifs = data.filter(function(i){return i.attributes && i.attributes.state===1;});
-      }
+      var actifsAll = data.filter(function(i){return i.attributes && i.attributes.state===1;});
       inactifs = data.filter(function(i){return i.attributes && i.attributes.state===0;});
+      
+      // Filtrer par type si detecte dans la question
+      if (typeFilter) {
+        actifs = actifsAll.filter(function(i){
+          return typeFilter.indexOf(i.attributes.typeOf) >= 0;
+        });
+      } else {
+        actifs = actifsAll;
+      }
+
       nomActifs = actifs.map(function(i){
         var a = i.attributes||{};
         return ((a.firstName||'') + ' ' + (a.lastName||'')).trim();
