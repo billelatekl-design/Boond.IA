@@ -286,6 +286,8 @@ function ask(t) {
   sendMsg();
 }
 
+var SYS_PLAN = "Tu es un routeur API BoondManager. Retourne UNIQUEMENT un JSON: {\"path\": \"/resources\", \"params\": \"\"}. ENDPOINTS: /resources = employes et consultants de la societe (pour toute question sur une personne interne, son email, son TJM, sa disponibilite, etc.). /contacts = contacts CRM externes (clients, prospects). /projects = projets (ajoute params: period=running&startDate=TODAY&endDate=TODAY pour les projets en cours). /invoices = factures. /companies = societes clientes. /opportunities = opportunites commerciales. /candidates = candidats RH. /absences = absences. /times = saisies de temps. /expenses = notes de frais. /orders = commandes. /payments = paiements. /agencies = agences. /poles = poles. JSON uniquement.";
+
 function getToday() {
   return new Date().toISOString().split('T')[0];
 }
@@ -307,6 +309,17 @@ function guessPath(t) {
   if (l.indexOf('agence') >= 0) return '/agencies';
   if (l.indexOf('p\u00f4le') >= 0 || l.indexOf('pole') >= 0) return '/poles';
   return '/resources';
+}
+
+function getPathFromPlan(plan, text) {
+  if (!plan || !plan.path) return guessPath(text);
+  var today = getToday();
+  var path = plan.path.replace(/TODAY/g, today);
+  if (plan.params) {
+    var params = plan.params.replace(/TODAY/g, today);
+    path += (path.indexOf('?') >= 0 ? '&' : '?') + params;
+  }
+  return path;
 }
 
 function sendMsg() {
@@ -331,10 +344,18 @@ function sendMsg() {
   else if (l.indexOf('alternant') >= 0 || l.indexOf('stagiaire') >= 0) typeFilter = [7];
   else if (l.indexOf('recrutement') >= 0 || l.indexOf('rh') >= 0) typeFilter = [13];
 
-  bFetchAll(guessPath(text)).then(function(r) {
-    var data = (r.ok && r.data && r.data.data) ? r.data.data : [];
-    var totalDB = (r.data && r.data.meta && r.data.meta.totals) ? r.data.meta.totals.rows : data.length;
-    var path = guessPath(text);
+  // Claude decide quel endpoint appeler
+  callClaude([{role: 'user', content: text}], SYS_PLAN).then(function(raw) {
+    var clean = raw.replace(/```json/g,'').replace(/```/g,'').trim();
+    return JSON.parse(clean);
+  }).catch(function() {
+    return {path: guessPath(text), params: ''};
+  }).then(function(plan) {
+    var apiPath = getPathFromPlan(plan, text);
+    return bFetchAll(apiPath).then(function(r) {
+      var data = (r.ok && r.data && r.data.data) ? r.data.data : [];
+      var totalDB = (r.data && r.data.meta && r.data.meta.totals) ? r.data.meta.totals.rows : data.length;
+      var path = apiPath;
 
     var actifs, inactifs, nomActifs;
 
@@ -449,6 +470,7 @@ function sendMsg() {
       typing.remove();
       addMsg('ai', '<p>Total: <strong>' + totalDB + '</strong> | Actifs: <strong>' + actifs.length + '</strong> | Inactifs: <strong>' + inactifs.length + '</strong></p>');
     });
+  }); // end bFetchAll
   }).catch(function(e) {
     typing.remove();
     addMsg('ai', '<p>Erreur: ' + e.message + '</p>');
