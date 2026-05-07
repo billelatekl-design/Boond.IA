@@ -348,17 +348,14 @@ function sendMsg() {
       }).filter(function(n){return n;});
     }
 
-    var tjmData = [];
-    if (isTJM) {
-      tjmData = actifs.map(function(i){
-        var a = i.attributes||{};
-        return {
-          nom: ((a.firstName||'') + ' ' + (a.lastName||'')).trim(),
-          tjm: a.averageDailyPriceExcludingTax || 0,
-          titre: a.title || ''
-        };
-      }).filter(function(i){return i.nom;});
-    }
+    var tjmData = actifs.map(function(i){
+      var a = i.attributes||{};
+      return {
+        nom: ((a.firstName||'') + ' ' + (a.lastName||'')).trim(),
+        tjm: a.averageDailyPriceExcludingTax || 0,
+        titre: a.title || ''
+      };
+    }).filter(function(i){return i.nom;});
 
     var stats = {
       totalDansBase: totalDB,
