@@ -286,7 +286,7 @@ function ask(t) {
   sendMsg();
 }
 
-var SYS_PLAN = "Tu es un routeur API BoondManager. Retourne UNIQUEMENT un JSON: {\"path\": \"/resources\", \"params\": \"\"}. ENDPOINTS: /resources = employes et consultants de la societe (pour toute question sur une personne interne, son email, son TJM, sa disponibilite, etc.). /contacts = contacts CRM externes (clients, prospects). /projects = projets (ajoute params: period=running&startDate=TODAY&endDate=TODAY pour les projets en cours). /invoices = factures. /companies = societes clientes. /opportunities = opportunites commerciales. /candidates = candidats RH. /absences = absences. /times = saisies de temps. /expenses = notes de frais. /orders = commandes. /payments = paiements. /agencies = agences. /poles = poles. JSON uniquement.";
+var SYS_PLAN = "Tu es un routeur API BoondManager. Retourne UNIQUEMENT un JSON: {\"path\": \"/resources\", \"params\": \"\"}. ENDPOINTS: /resources = employes et consultants internes. /contacts = contacts CRM externes (clients, prospects). /projects = projets. /invoices = factures. /companies = societes clientes. /opportunities = opportunites commerciales. /candidates = candidats RH. /absences = absences. /times = saisies de temps. /expenses = notes de frais. /orders = commandes. /payments = paiements. REGLES: Si la question mentionne un nom de personne, ajoute keywords=NOM dans params. Si question sur projets en cours: params=period=running&startDate=TODAY&endDate=TODAY. Remplace TODAY par la date du jour. JSON uniquement.";
 
 function getToday() {
   return new Date().toISOString().split('T')[0];
@@ -366,6 +366,14 @@ function sendMsg() {
         var a = i.attributes||{};
         return a.reference || '';
       }).filter(function(n){return n.trim();});
+    } else if (path.indexOf('/candidates') >= 0 || path.indexOf('/contacts') >= 0) {
+      // Candidats et contacts - pas de filtre state, on retourne tout
+      actifs = data;
+      inactifs = [];
+      nomActifs = actifs.map(function(i){
+        var a = i.attributes||{};
+        return ((a.firstName||'') + ' ' + (a.lastName||'')).trim();
+      }).filter(function(n){return n;});
     } else {
       var actifsAll = data.filter(function(i){return i.attributes && i.attributes.state===1;});
       inactifs = data.filter(function(i){return i.attributes && i.attributes.state===0;});
