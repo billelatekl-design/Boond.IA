@@ -158,7 +158,7 @@ var _busy = false;
 
 var SYS_PLAN = "Tu es BoondAI, expert API BoondManager. Retourne UNIQUEMENT un JSON valide.\n\nFORMAT: {\"calls\":[{\"path\":\"/resources\"}],\"plan\":\"...\"}\n\nENDPOINTS:\n- /resources → ressources (state:1=actif,0=inactif)\n- /projects → projets (state:1=en cours,0=termine)\n- /invoices → factures (state:0=impayee,1=payee)\n- /times → saisies de temps\n- /times-reports → feuilles de temps\n- /absences → absences\n- /contacts → contacts CRM\n- /companies → societes\n- /opportunities → opportunites\n- /candidates → candidats\n- /expenses → depenses\n- /orders → commandes\n- /payments → paiements\n\nREGLES:\n- Toujours utiliser bFetchAll qui pagine automatiquement\n- Pour compter les actifs: recuperer /resources et filtrer state===1\n- Ne pas utiliser meta.totals.rows pour les questions filtrees\n- JSON uniquement, rien d'autre";
 
-var SYS_ANS = "Tu es BoondAI, assistant BoondManager. Reponds TOUJOURS en francais de facon COURTE et DIRECTE. Maximum 3 lignes pour une question simple. Donne uniquement les chiffres demandes. Pas de titres, pas de sections, pas d emojis, pas de pourcentages inutiles. Si on demande une liste, liste seulement les noms. REGLES: actifs=state===1, inactifs=state===0, projets en cours=state===1, factures impayees=state===0. Ne JAMAIS utiliser meta.totals.rows pour les questions filtrees, toujours compter dans data[]. TYPES DE RESSOURCES (champ typeOf): 0=Consultant Interne, 1=Consultant Externe, 2=Ingenieur d affaires, 3=Responsable agence, 4=Directeur, 6=Comptabilite/Office Manager, 7=Stagiaire/Alternant, 13=Interne (RH/Recrutement/Gestion). Les CONSULTANTS sont typeOf=0 (interne) et typeOf=1 (externe).";
+var SYS_ANS = "Tu es BoondAI, assistant BoondManager. Reponds TOUJOURS en francais de facon COURTE et DIRECTE. Pas de titres, pas de sections, pas d emojis inutiles. REGLES: actifs=state===1, inactifs=state===0. Ne JAMAIS utiliser meta.totals.rows pour les questions filtrees. TYPES (typeOf): 0=Consultant Interne, 1=Consultant Externe, 2=Ingenieur affaires, 3=Responsable agence, 4=Directeur, 6=Admin/Compta, 7=Stagiaire/Alternant, 13=Interne RH/Gestion. DISPONIBILITE: availability=immediate signifie disponible maintenant, sinon c est une date future. TJM=averageDailyPriceExcludingTax. Pour chercher une personne par nom, cherche dans items[]. Pour le TJM moyen utilise tjmMoyen. Pour les disponibles utilise disponibleImmediatement et disponibleBientot.";
 
 function doLogin() {
   var email = document.getElementById('lEmail').value.trim();
@@ -362,15 +362,55 @@ function sendMsg() {
       }).filter(function(n){return n;});
     }
 
+    var today = new Date().toISOString().split('T')[0];
+
+    // TJM data pour les actifs filtres
     var tjmData = actifs.map(function(i){
       var a = i.attributes||{};
       return {
         nom: ((a.firstName||'') + ' ' + (a.lastName||'')).trim(),
         tjm: a.averageDailyPriceExcludingTax || 0,
         titre: a.title || '',
-        typeOf: a.typeOf
+        typeOf: a.typeOf,
+        disponibilite: a.availability || ''
       };
     }).filter(function(i){return i.nom;});
+
+    // TJM moyen (sans les 0)
+    var tjmNonZero = tjmData.filter(function(i){return i.tjm > 0;});
+    var tjmMoyen = tjmNonZero.length > 0 ? Math.round(tjmNonZero.reduce(function(s,i){return s+i.tjm;},0) / tjmNonZero.length) : 0;
+
+    // Disponibilites
+    var dispoImmediat = actifs.filter(function(i){return i.attributes && i.attributes.availability === 'immediate';});
+    var dispoFutur = actifs.filter(function(i){
+      var av = i.attributes && i.attributes.availability;
+      return av && av !== 'immediate' && av > today;
+    });
+
+    // Repartition par type
+    var parType = {};
+    actifs.forEach(function(i){
+      var t = (i.attributes||{}).typeOf;
+      parType[t] = (parType[t]||0) + 1;
+    });
+
+    // Tous les items enrichis
+    var allItems = data.map(function(i){
+      var a = i.attributes||{};
+      return {
+        state: a.state,
+        firstName: a.firstName,
+        lastName: a.lastName,
+        title: a.title,
+        typeOf: a.typeOf,
+        availability: a.availability,
+        averageDailyPriceExcludingTax: a.averageDailyPriceExcludingTax,
+        reference: a.reference,
+        startDate: a.startDate,
+        endDate: a.endDate,
+        totalExcludingTax: a.totalExcludingTax
+      };
+    });
 
     var stats = {
       totalDansBase: totalDB,
@@ -379,20 +419,11 @@ function sendMsg() {
       termines: inactifs.length,
       nomsEnCours: nomActifs,
       tjmRessourcesActives: tjmData,
-      items: data.map(function(i){
-        var a = i.attributes||{};
-        return {
-          state: a.state,
-          firstName: a.firstName,
-          lastName: a.lastName,
-          title: a.title,
-          reference: a.reference,
-          startDate: a.startDate,
-          endDate: a.endDate,
-          averageDailyPriceExcludingTax: a.averageDailyPriceExcludingTax,
-          totalExcludingTax: a.totalExcludingTax
-        };
-      })
+      tjmMoyen: tjmMoyen,
+      disponibleImmediatement: dispoImmediat.map(function(i){var a=i.attributes||{};return ((a.firstName||'')+' '+(a.lastName||'')).trim();}),
+      disponibleBientot: dispoFutur.map(function(i){var a=i.attributes||{};return {nom:((a.firstName||'')+' '+(a.lastName||'')).trim(),date:a.availability};}),
+      repartitionParType: parType,
+      items: allItems
     };
 
     var dataStr = JSON.stringify(stats);
