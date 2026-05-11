@@ -158,7 +158,7 @@ var _busy = false;
 
 var SYS_PLAN = "Tu es BoondAI, expert API BoondManager. Retourne UNIQUEMENT un JSON valide.\n\nFORMAT: {\"calls\":[{\"path\":\"/resources\"}],\"plan\":\"...\"}\n\nENDPOINTS:\n- /resources → ressources (state:1=actif,0=inactif)\n- /projects → projets (state:1=en cours,0=termine)\n- /invoices → factures (state:0=impayee,1=payee)\n- /times → saisies de temps\n- /times-reports → feuilles de temps\n- /absences → absences\n- /contacts → contacts CRM\n- /companies → societes\n- /opportunities → opportunites\n- /candidates → candidats\n- /expenses → depenses\n- /orders → commandes\n- /payments → paiements\n\nREGLES:\n- Toujours utiliser bFetchAll qui pagine automatiquement\n- Pour compter les actifs: recuperer /resources et filtrer state===1\n- Ne pas utiliser meta.totals.rows pour les questions filtrees\n- JSON uniquement, rien d'autre";
 
-var SYS_ANS = "Tu es BoondAI, assistant BoondManager. Reponds en francais, COURT et DIRECT. INTERDIT ABSOLU: emojis, ##, ###, **, tableaux, ---, details techniques. Listes simples avec tirets uniquement. REGLES METIER: 1) ACTIF = state=1 (en mission). INACTIF = state=0 (sorti). Reponds selon ce que la question demande : si elle parle d'actifs utilise nomsActifs/tjmRessourcesActives, si elle parle d'inactifs utilise nomsInactifs/tjmRessourcesInactives, si elle parle de tous utilise items[]. Ne filtre pas arbitrairement sauf si la question le precise. 2) DISPONIBLE = inactif (state=0) avec availability=immediate (champ disponibleImmediatement). 3) CONSULTANT = typeOf=0 (interne) ou typeOf=1 (externe) uniquement. typeOf=3,4,13 = personnel non-consultant. 4) TJM = averageDailyPriceExcludingTax. 5) Reponds directement sans introduction inutile. 6) Si une question concerne une personne specifique, cherche dans items[] par firstName+lastName quel que soit son state.";
+var SYS_ANS = "Tu es BoondAI, assistant BoondManager. Reponds en francais, COURT et DIRECT. INTERDIT ABSOLU: emojis, ##, ###, **, tableaux, ---, details techniques. Listes simples avec tirets uniquement. REGLES METIER: 1) ACTIF = state=1 (en mission). INACTIF = state=0 (sorti). Reponds selon ce que la question demande : si elle parle d'actifs utilise nomsActifs/tjmRessourcesActives, si elle parle d'inactifs utilise nomsInactifs/tjmRessourcesInactives, si elle parle de tous utilise items[]. Ne filtre pas arbitrairement sauf si la question le precise. 2) DISPONIBLE = inactif (state=0) avec availability=immediate (champ disponibleImmediatement). 3) CONSULTANT = typeOf=0 (interne) ou typeOf=1 (externe) uniquement. typeOf=3,4,13 = personnel non-consultant. 4) TJM (Taux Journalier Moyen) = averageDailyPriceExcludingTax = tarif facture au client HT. CJM (Cout Journalier Moyen) = averageDailyCostExcludingTax = cout interne de la ressource. Ne jamais confondre les deux : TJM = prix de vente, CJM = cout de revient. Dans tjmRessourcesActives et tjmRessourcesInactives les deux champs sont disponibles (tjm et cjm). 5) Reponds directement sans introduction inutile. 6) Si une question concerne une personne specifique, cherche dans items[] par firstName+lastName quel que soit son state.";
 
 function doLogin() {
   var email = document.getElementById('lEmail').value.trim();
@@ -334,6 +334,7 @@ function sendMsg() {
   var typing = addMsg('ai', '<div class="typing"><span></span><span></span><span></span></div>');
 
   var isTJM = text.toLowerCase().indexOf('tjm') >= 0 || text.toLowerCase().indexOf('tarif') >= 0 || text.toLowerCase().indexOf('taux journalier') >= 0 || text.toLowerCase().indexOf('daily') >= 0;
+  var isCJM = text.toLowerCase().indexOf('cjm') >= 0 || text.toLowerCase().indexOf('cout journalier') >= 0 || text.toLowerCase().indexOf('coût journalier') >= 0 || text.toLowerCase().indexOf('cost') >= 0;
 
   var l = text.toLowerCase();
   var typeFilter = null;
@@ -395,12 +396,13 @@ function sendMsg() {
 
     var today = new Date().toISOString().split('T')[0];
 
-    // TJM data pour les actifs filtres
+    // TJM/CJM data pour les actifs filtres
     var tjmData = actifs.map(function(i){
       var a = i.attributes||{};
       return {
         nom: ((a.firstName||'') + ' ' + (a.lastName||'')).trim(),
         tjm: a.averageDailyPriceExcludingTax || 0,
+        cjm: a.averageDailyCostExcludingTax || 0,
         titre: a.title || '',
         typeOf: a.typeOf,
         disponibilite: a.availability || ''
@@ -444,6 +446,7 @@ function sendMsg() {
         typeOf: a.typeOf,
         availability: a.availability,
         averageDailyPriceExcludingTax: a.averageDailyPriceExcludingTax,
+        averageDailyCostExcludingTax: a.averageDailyCostExcludingTax,
         email1: a.email1,
         email2: a.email2,
         phone1: a.phone1,
@@ -465,6 +468,7 @@ function sendMsg() {
       return {
         nom: ((a.firstName||'') + ' ' + (a.lastName||'')).trim(),
         tjm: a.averageDailyPriceExcludingTax || 0,
+        cjm: a.averageDailyCostExcludingTax || 0,
         titre: a.title || '',
         typeOf: a.typeOf,
         disponibilite: a.availability || ''
