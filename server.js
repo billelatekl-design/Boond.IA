@@ -78,6 +78,23 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Debug: retourne tous les champs d'une fiche ressource
+  if (url.pathname === '/debug-fields' && req.method === 'POST') {
+    const body = await readBody(req);
+    const { email, password, resourceId } = body;
+    if (!email || !password || !resourceId) { json(res, 400, { error: 'email, password, resourceId requis' }); return; }
+    const credentials = Buffer.from(email + ':' + password).toString('base64');
+    try {
+      const r = await httpsRequest(`https://ui.boondmanager.com/api/resources/${resourceId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + credentials }
+      });
+      const attrs = r.body?.data?.attributes || {};
+      json(res, r.status, { fields: Object.keys(attrs), raw: attrs });
+    } catch(e) { json(res, 500, { error: e.message }); }
+    return;
+  }
+
   // Claude proxy
   if (url.pathname === '/claude' && req.method === 'POST') {
     if (!ANTHROPIC_KEY) { json(res, 500, { error: 'Clé Anthropic non configurée sur le serveur' }); return; }
