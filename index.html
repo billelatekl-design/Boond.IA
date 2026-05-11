@@ -267,11 +267,12 @@ function sendMsg() {
       addMsg('ai', md(data.answer));
       _history.push({role: 'assistant', content: data.answer});
     } else {
-      addMsg('ai', '<p>Erreur : ' + (data.error || 'Reponse vide') + '</p>');
+      var errMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error || data);
+      addMsg('ai', '<p>Erreur : ' + errMsg + '</p>');
     }
   }).catch(function(e) {
     typing.remove();
-    addMsg('ai', '<p>Erreur : ' + e.message + '</p>');
+    addMsg('ai', '<p>Erreur réseau : ' + (e && e.message ? e.message : String(e)) + '</p>');
   }).finally(function() {
     _busy = false;
     document.getElementById('sendBtn').disabled = false;

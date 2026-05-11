@@ -228,7 +228,9 @@ RÈGLES:
       json(res, 200, { answer: 'Requête trop complexe, veuillez reformuler.' });
 
     } catch(e) {
-      json(res, 500, { error: e.message });
+      const msg = e?.message || (typeof e === 'string' ? e : JSON.stringify(e));
+      console.error('[AGENT ERROR]', e);
+      json(res, 500, { error: msg });
     } finally {
       if (mcpClient) {
         try { await mcpClient.close(); } catch {}
