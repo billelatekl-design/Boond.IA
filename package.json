@@ -1,1 +1,12 @@
-{"name":"boondai","version":"1.0.0","main":"server.js","scripts":{"start":"node server.js"}}
+{
+  "name": "boondai",
+  "version": "2.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "boondmanager-mcp-server": "latest",
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}
