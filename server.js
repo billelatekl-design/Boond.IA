@@ -217,21 +217,28 @@ RÈGLES:
               const { path, params } = toolUse.input;
               let allData = [];
               let page = 1;
-              while (page <= 20) {
-                const qs = (params ? params + '&' : '') + `number=50&page=${page}`;
+              let totalRows = null;
+              const PAGE_SIZE = 100;
+              while (page <= 50) {
+                const qs = (params ? params + '&' : '') + `number=${PAGE_SIZE}&page=${page}`;
                 const apiR = await httpsRequest(
                   `https://ui.boondmanager.com/api${path}?${qs}`,
                   { method: 'GET', headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + credentials } }
                 );
                 const data = apiR.body?.data || [];
+                if (totalRows === null) {
+                  totalRows = apiR.body?.meta?.totals?.rows ?? null;
+                }
                 allData = allData.concat(data);
-                if (data.length < 50) break;
+                if (data.length === 0) break;
+                if (totalRows !== null && allData.length >= totalRows) break;
+                if (data.length < PAGE_SIZE) break;
                 page++;
               }
               toolResults.push({
                 type: 'tool_result',
                 tool_use_id: toolUse.id,
-                content: JSON.stringify({ data: allData, total: allData.length })
+                content: JSON.stringify({ data: allData, total: totalRows ?? allData.length })
               });
             }
           }
