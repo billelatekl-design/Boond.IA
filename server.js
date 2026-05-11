@@ -126,12 +126,24 @@ const server = http.createServer(async (req, res) => {
       // Récupérer tous les outils du MCP server
       const { tools: mcpTools } = await mcpClient.listTools();
 
-      // Convertir au format Anthropic
-      const anthropicTools = mcpTools.map(t => ({
-        name: t.name,
-        description: t.description || t.name,
-        input_schema: t.inputSchema || { type: 'object', properties: {} }
-      }));
+      // Convertir au format Anthropic (tronquer descriptions pour limiter les tokens)
+      const anthropicTools = mcpTools.map(t => {
+        const desc = (t.description || t.name).slice(0, 120);
+        const schema = t.inputSchema || { type: 'object', properties: {} };
+        // Garder uniquement les propriétés essentielles du schema pour réduire les tokens
+        const trimmedSchema = {
+          type: schema.type || 'object',
+          properties: Object.fromEntries(
+            Object.entries(schema.properties || {}).map(([k, v]) => [k, {
+              type: v.type,
+              description: (v.description || '').slice(0, 80),
+              ...(v.enum ? { enum: v.enum } : {})
+            }])
+          ),
+          ...(schema.required ? { required: schema.required } : {})
+        };
+        return { name: t.name, description: desc, input_schema: trimmedSchema };
+      });
 
       const today = new Date().toISOString().split('T')[0];
       const SYS = `Tu es BoondAI, assistant expert BoondManager. Tu as accès à ${anthropicTools.length} outils pour interroger l'API BoondManager en temps réel.
