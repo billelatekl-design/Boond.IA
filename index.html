@@ -137,9 +137,9 @@ header{display:flex;align-items:center;padding:0 40px;height:60px;border-bottom:
         <textarea id="chatInput" placeholder="Posez votre question..." rows="1"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
           oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,110)+'px'"></textarea>
-        <button id="sendBtn" onclick="sendMsg()">›</button>
+        <button id="sendBtn" onclick="sendMsg()">&#8250;</button>
       </div>
-      <div class="ihint">Entree pour envoyer · Maj+Entree pour nouvelle ligne</div>
+      <div class="ihint">Entree pour envoyer &middot; Maj+Entree pour nouvelle ligne</div>
     </div>
   </div>
   <div class="view" id="view-config">
@@ -155,10 +155,6 @@ header{display:flex;align-items:center;padding:0 40px;height:60px;border-bottom:
 var _sess = null;
 var _history = [];
 var _busy = false;
-
-var SYS_PLAN = "Tu es BoondAI, expert API BoondManager. Retourne UNIQUEMENT un JSON valide.\n\nFORMAT: {\"calls\":[{\"path\":\"/resources\"}],\"plan\":\"...\"}\n\nENDPOINTS:\n- /resources → ressources (state:1=actif,0=inactif)\n- /projects → projets (state:1=en cours,0=termine)\n- /invoices → factures (state:0=impayee,1=payee)\n- /times → saisies de temps\n- /times-reports → feuilles de temps\n- /absences → absences\n- /contacts → contacts CRM\n- /companies → societes\n- /opportunities → opportunites\n- /candidates → candidats\n- /expenses → depenses\n- /orders → commandes\n- /payments → paiements\n\nREGLES:\n- Toujours utiliser bFetchAll qui pagine automatiquement\n- Pour compter les actifs: recuperer /resources et filtrer state===1\n- Ne pas utiliser meta.totals.rows pour les questions filtrees\n- JSON uniquement, rien d'autre";
-
-var SYS_ANS = "Tu es BoondAI, assistant BoondManager. Reponds en francais, COURT et DIRECT. INTERDIT ABSOLU: emojis, ##, ###, **, tableaux, ---, details techniques. Listes simples avec tirets uniquement. REGLES METIER: 1) ACTIF = state=1 (en mission). INACTIF = state=0 (sorti). Reponds selon ce que la question demande : si elle parle d'actifs utilise nomsActifs/tjmRessourcesActives, si elle parle d'inactifs utilise nomsInactifs/tjmRessourcesInactives, si elle parle de tous utilise items[]. Ne filtre pas arbitrairement sauf si la question le precise. 2) DISPONIBLE = inactif (state=0) avec availability=immediate (champ disponibleImmediatement). 3) CONSULTANT = typeOf=0 (interne) ou typeOf=1 (externe) uniquement. typeOf=3,4,13 = personnel non-consultant. 4) TJM (Taux Journalier Moyen) = averageDailyPriceExcludingTax = tarif facture au client HT. CJM (Cout Journalier Moyen) = averageDailyCostExcludingTax = cout interne de la ressource. Ne jamais confondre les deux : TJM = prix de vente, CJM = cout de revient. Dans tjmRessourcesActives et tjmRessourcesInactives les deux champs sont disponibles (tjm et cjm). 5) Reponds directement sans introduction inutile. 6) Si une question concerne une personne specifique, cherche dans items[] par firstName+lastName quel que soit son state.";
 
 function doLogin() {
   var email = document.getElementById('lEmail').value.trim();
@@ -209,49 +205,6 @@ function doLogout() {
   document.getElementById('suggs').style.display = 'flex';
 }
 
-function bFetch(boondPath) {
-  return fetch('/boond', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email: _sess.email, password: _sess.password, boondPath: boondPath})
-  }).then(function(r) {
-    return r.json().then(function(d) { return {ok: r.ok, status: r.status, data: d}; });
-  }).catch(function(e) { return {ok: false, data: {error: e.message}}; });
-}
-
-function bFetchAll(boondPath) {
-  var sep = boondPath.indexOf('?') >= 0 ? '&' : '?';
-  return bFetch(boondPath + sep + 'number=30&page=1').then(function(first) {
-    if (!first.ok) return first;
-    var total = (first.data && first.data.meta && first.data.meta.totals) ? first.data.meta.totals.rows : 0;
-    var allData = (first.data && first.data.data) ? first.data.data.slice() : [];
-    if (total === 0) total = allData.length;
-    var pages = Math.ceil(total / 30);
-    if (pages <= 1) return {ok: true, data: {data: allData, meta: {totals: {rows: total}}}};
-    var promises = [];
-    for (var p = 2; p <= pages; p++) {
-      promises.push(bFetch(boondPath + sep + 'number=30&page=' + p));
-    }
-    return Promise.all(promises).then(function(results) {
-      results.forEach(function(r) {
-        if (r.ok && r.data && r.data.data) allData = allData.concat(r.data.data);
-      });
-      return {ok: true, data: {data: allData, meta: {totals: {rows: total}}}};
-    });
-  });
-}
-
-function callClaude(messages, system) {
-  return fetch('/claude', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({model: 'claude-sonnet-4-6', max_tokens: 1500, system: system, messages: messages})
-  }).then(function(r) {
-    if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || r.status); });
-    return r.json().then(function(d) { return d.content && d.content[0] ? d.content[0].text : ''; });
-  });
-}
-
 function switchTab(name, el) {
   document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
   document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
@@ -286,42 +239,6 @@ function ask(t) {
   sendMsg();
 }
 
-var SYS_PLAN = "Tu es un routeur API BoondManager. Retourne UNIQUEMENT un JSON: {\"path\": \"/resources\", \"params\": \"\"}. ENDPOINTS: /resources = employes et consultants internes. /contacts = contacts CRM externes (clients, prospects). /projects = projets. /invoices = factures. /companies = societes clientes. /opportunities = opportunites commerciales. /candidates = candidats RH. /absences = absences. /times = saisies de temps. /expenses = notes de frais. /orders = commandes. /payments = paiements. REGLES: Si la question mentionne un nom de personne, ajoute keywords=PRENOM+NOM dans params (ex: keywords=Jean+Dupont). Si question sur projets en cours: params=period=running&startDate=TODAY&endDate=TODAY. Remplace TODAY par la date du jour. JSON uniquement.";
-
-function getToday() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function guessPath(t) {
-  var l = t.toLowerCase();
-  var today = getToday();
-  if (l.indexOf('projet') >= 0) return '/projects?period=running&startDate=' + today + '&endDate=' + today;
-  if (l.indexOf('facture') >= 0 || l.indexOf('impay') >= 0) return '/invoices';
-  if (l.indexOf('absence') >= 0 || l.indexOf('cong') >= 0) return '/absences';
-  if (l.indexOf('temps') >= 0 || l.indexOf('timesheet') >= 0 || l.indexOf('saisie') >= 0) return '/times';
-  if (l.indexOf('contact') >= 0) return '/contacts';
-  if (l.indexOf('soci') >= 0 || l.indexOf('client') >= 0 || l.indexOf('entreprise') >= 0) return '/companies';
-  if (l.indexOf('opportunit') >= 0 || l.indexOf('prospect') >= 0) return '/opportunities';
-  if (l.indexOf('candidat') >= 0) return '/candidates';
-  if (l.indexOf('commande') >= 0 || l.indexOf('order') >= 0) return '/orders';
-  if (l.indexOf('paiement') >= 0) return '/payments';
-  if (l.indexOf('d\u00e9pense') >= 0 || l.indexOf('frais') >= 0 || l.indexOf('note') >= 0) return '/expenses';
-  if (l.indexOf('agence') >= 0) return '/agencies';
-  if (l.indexOf('p\u00f4le') >= 0 || l.indexOf('pole') >= 0) return '/poles';
-  return '/resources';
-}
-
-function getPathFromPlan(plan, text) {
-  if (!plan || !plan.path) return guessPath(text);
-  var today = getToday();
-  var path = plan.path.replace(/TODAY/g, today);
-  if (plan.params) {
-    var params = plan.params.replace(/TODAY/g, today);
-    path += (path.indexOf('?') >= 0 ? '&' : '?') + params;
-  }
-  return path;
-}
-
 function sendMsg() {
   var inp = document.getElementById('chatInput');
   var text = inp.value.trim();
@@ -333,181 +250,28 @@ function sendMsg() {
   _history.push({role: 'user', content: text});
   var typing = addMsg('ai', '<div class="typing"><span></span><span></span><span></span></div>');
 
-  var isTJM = text.toLowerCase().indexOf('tjm') >= 0 || text.toLowerCase().indexOf('tarif') >= 0 || text.toLowerCase().indexOf('taux journalier') >= 0 || text.toLowerCase().indexOf('daily') >= 0;
-  var isCJM = text.toLowerCase().indexOf('cjm') >= 0 || text.toLowerCase().indexOf('cout journalier') >= 0 || text.toLowerCase().indexOf('coût journalier') >= 0 || text.toLowerCase().indexOf('cost') >= 0;
-
-  var l = text.toLowerCase();
-  var typeFilter = null;
-  if (l.indexOf('consultant externe') >= 0 || l.indexOf('consultants externes') >= 0) typeFilter = [1];
-  else if (l.indexOf('consultant interne') >= 0 || l.indexOf('consultants internes') >= 0) typeFilter = [0];
-  else if (l.indexOf('consultant') >= 0) typeFilter = [0, 1];
-  else if (l.indexOf('ingenieur d affaire') >= 0 || l.indexOf('ing\u00e9nieur') >= 0) typeFilter = [2];
-  else if (l.indexOf('alternant') >= 0 || l.indexOf('stagiaire') >= 0) typeFilter = [7];
-  else if (l.indexOf('recrutement') >= 0 || l.indexOf('rh') >= 0) typeFilter = [13];
-
-  // Claude decide quel endpoint appeler
-  callClaude([{role: 'user', content: text}], SYS_PLAN).then(function(raw) {
-    var clean = raw.replace(/```json/g,'').replace(/```/g,'').trim();
-    return JSON.parse(clean);
-  }).catch(function() {
-    return {path: guessPath(text), params: ''};
-  }).then(function(plan) {
-    var apiPath = getPathFromPlan(plan, text);
-    return bFetchAll(apiPath).then(function(r) {
-      var data = (r.ok && r.data && r.data.data) ? r.data.data : [];
-      var totalDB = (r.data && r.data.meta && r.data.meta.totals) ? r.data.meta.totals.rows : data.length;
-      var path = apiPath;
-
-    var actifs, inactifs, nomActifs;
-
-    if (path.indexOf('/projects') >= 0) {
-      actifs = data;
-      inactifs = [];
-      nomActifs = actifs.map(function(i){
-        var a = i.attributes||{};
-        return a.reference || '';
-      }).filter(function(n){return n.trim();});
-    } else if (path.indexOf('/candidates') >= 0 || path.indexOf('/contacts') >= 0) {
-      // Candidats et contacts - pas de filtre state, on retourne tout
-      actifs = data;
-      inactifs = [];
-      nomActifs = actifs.map(function(i){
-        var a = i.attributes||{};
-        return ((a.firstName||'') + ' ' + (a.lastName||'')).trim();
-      }).filter(function(n){return n;});
+  fetch('/agent', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      email: _sess.email,
+      password: _sess.password,
+      question: text,
+      history: _history.slice(-10)
+    })
+  }).then(function(r) {
+    return r.json();
+  }).then(function(data) {
+    typing.remove();
+    if (data.answer) {
+      addMsg('ai', md(data.answer));
+      _history.push({role: 'assistant', content: data.answer});
     } else {
-      var actifsAll = data.filter(function(i){return i.attributes && i.attributes.state===1;});
-      inactifs = data.filter(function(i){return i.attributes && i.attributes.state===0;});
-      
-      // Filtrer par type si detecte dans la question
-      if (typeFilter) {
-        actifs = actifsAll.filter(function(i){
-          return typeFilter.indexOf(i.attributes.typeOf) >= 0;
-        });
-      } else {
-        actifs = actifsAll;
-      }
-
-      nomActifs = actifs.map(function(i){
-        var a = i.attributes||{};
-        return ((a.firstName||'') + ' ' + (a.lastName||'')).trim();
-      }).filter(function(n){return n;});
+      addMsg('ai', '<p>Erreur : ' + (data.error || 'Reponse vide') + '</p>');
     }
-
-    var today = new Date().toISOString().split('T')[0];
-
-    // TJM/CJM data pour les actifs filtres
-    var tjmData = actifs.map(function(i){
-      var a = i.attributes||{};
-      return {
-        nom: ((a.firstName||'') + ' ' + (a.lastName||'')).trim(),
-        tjm: a.averageDailyPriceExcludingTax || 0,
-        cjm: a.averageDailyCostExcludingTax || 0,
-        titre: a.title || '',
-        typeOf: a.typeOf,
-        disponibilite: a.availability || ''
-      };
-    }).filter(function(i){return i.nom;});
-
-    // TJM moyen (sans les 0)
-    var tjmNonZero = tjmData.filter(function(i){return i.tjm > 0;});
-    var tjmMoyen = tjmNonZero.length > 0 ? Math.round(tjmNonZero.reduce(function(s,i){return s+i.tjm;},0) / tjmNonZero.length) : 0;
-
-    // Disponibilites - logique metier correcte
-    // Disponible = inactif (state=0) avec availability=immediate
-    var dispoImmediat = data.filter(function(i){
-      var a = i.attributes||{};
-      return a.state === 0 && a.availability === 'immediate';
-    });
-    // Bientot disponible = actif (state=1) avec une date de fin prochaine (dans les 3 mois)
-    var in3months = new Date();
-    in3months.setMonth(in3months.getMonth() + 3);
-    var in3monthsStr = in3months.toISOString().split('T')[0];
-    var dispoFutur = data.filter(function(i){
-      var a = i.attributes||{};
-      return a.state === 1 && a.availability && a.availability !== 'immediate' && a.availability <= in3monthsStr;
-    });
-
-    // Repartition par type
-    var parType = {};
-    actifs.forEach(function(i){
-      var t = (i.attributes||{}).typeOf;
-      parType[t] = (parType[t]||0) + 1;
-    });
-
-    // Tous les items enrichis
-    var allItems = data.map(function(i){
-      var a = i.attributes||{};
-      return {
-        state: a.state,
-        firstName: a.firstName,
-        lastName: a.lastName,
-        title: a.title,
-        typeOf: a.typeOf,
-        availability: a.availability,
-        averageDailyPriceExcludingTax: a.averageDailyPriceExcludingTax,
-        averageDailyCostExcludingTax: a.averageDailyCostExcludingTax,
-        email1: a.email1,
-        email2: a.email2,
-        phone1: a.phone1,
-        phone2: a.phone2,
-        reference: a.reference,
-        startDate: a.startDate,
-        endDate: a.endDate,
-        totalExcludingTax: a.totalExcludingTax
-      };
-    });
-
-    var nomInactifs = inactifs.map(function(i){
-      var a = i.attributes||{};
-      return ((a.firstName||'') + ' ' + (a.lastName||'')).trim();
-    }).filter(function(n){return n;});
-
-    var tjmDataInactifs = inactifs.map(function(i){
-      var a = i.attributes||{};
-      return {
-        nom: ((a.firstName||'') + ' ' + (a.lastName||'')).trim(),
-        tjm: a.averageDailyPriceExcludingTax || 0,
-        cjm: a.averageDailyCostExcludingTax || 0,
-        titre: a.title || '',
-        typeOf: a.typeOf,
-        disponibilite: a.availability || ''
-      };
-    }).filter(function(i){return i.nom;});
-
-    var stats = {
-      totalDansBase: totalDB,
-      totalRecuperes: data.length,
-      enCours: actifs.length,
-      termines: inactifs.length,
-      nomsActifs: nomActifs,
-      nomsInactifs: nomInactifs,
-      tjmRessourcesActives: tjmData,
-      tjmRessourcesInactives: tjmDataInactifs,
-      tjmMoyen: tjmMoyen,
-      disponibleImmediatement: dispoImmediat.map(function(i){var a=i.attributes||{};return ((a.firstName||'')+' '+(a.lastName||'')).trim();}),
-      disponibleBientot: dispoFutur.map(function(i){var a=i.attributes||{};return {nom:((a.firstName||'')+' '+(a.lastName||'')).trim(),date:a.availability};}),
-      repartitionParType: parType,
-      items: allItems
-    };
-
-    var dataStr = JSON.stringify(stats);
-    var msgs = [{
-      role: 'user',
-      content: 'Question: "' + text + '"\n\nSTATISTIQUES PRE-CALCULEES (utilise UNIQUEMENT ces donnees, ne recalcule pas, ne melange pas avec d autres donnees):\n' + dataStr + '\n\nReponds en francais, sois direct et concis.'
-    }];
-    return callClaude(msgs, SYS_ANS).then(function(answer) {
-      typing.remove();
-      addMsg('ai', md(answer));
-      _history.push({role: 'assistant', content: answer});
-    }).catch(function(e) {
-      typing.remove();
-      addMsg('ai', '<p>Total: <strong>' + totalDB + '</strong> | Actifs: <strong>' + actifs.length + '</strong> | Inactifs: <strong>' + inactifs.length + '</strong></p>');
-    });
-  }); // end bFetchAll
   }).catch(function(e) {
     typing.remove();
-    addMsg('ai', '<p>Erreur: ' + e.message + '</p>');
+    addMsg('ai', '<p>Erreur : ' + e.message + '</p>');
   }).finally(function() {
     _busy = false;
     document.getElementById('sendBtn').disabled = false;
