@@ -197,7 +197,7 @@ RÈGLES:
 - Appelle boond_api avec les bons paramètres pour répondre précisément
 - Si nécessaire, fais plusieurs appels enchaînés (ex: chercher une personne puis ses projets)
 - TJM = averageDailyPriceExcludingTax = tarif journalier facturé au client HT (disponible dans la liste /resources)
-- CJM = coût journalier moyen interne HT. IMPORTANT: disponible UNIQUEMENT via /resources/{id}/administrative, jamais dans la liste /resources ni dans /resources/{id}. Pour obtenir le CJM, appelle toujours /resources/{id}/administrative.
+- CJM = coût journalier moyen interne HT. IMPORTANT: disponible UNIQUEMENT via /resources/{id}/administrative. Pour débuguer: quand tu appelles cet endpoint, liste TOUS les champs et valeurs reçus dans ta réponse, même si le CJM semble absent.
 - state=1 = actif/en mission, state=0 = inactif/sorti
 - CONSULTANT = typeOf=0 (interne) ou typeOf=1 (externe) uniquement
 - DISPONIBLE IMMÉDIATEMENT = state=0 + availability="immediate"
