@@ -202,7 +202,7 @@ RÈGLES:
 - Appelle boond_api avec les bons paramètres pour répondre précisément
 - Si nécessaire, fais plusieurs appels enchaînés (ex: chercher une personne puis ses projets)
 - TJM = averageDailyPriceExcludingTax = tarif journalier facturé au client HT (disponible dans la liste /resources)
-- CJM (Coût Journalier Moyen) : ce champ N'EST PAS exposé par l'API externe BoondManager. Si on te demande le CJM d'une ressource, réponds clairement : "Le CJM n'est pas accessible via l'API externe BoondManager. Vous pouvez le consulter directement dans la fiche de la ressource sur BoondManager." Ne dis jamais que le CJM "n'est pas renseigné" car il peut très bien être renseigné dans BoondManager mais simplement non exposé par l'API.
+- CJM (Coût Journalier Moyen) : confirmé par BoondManager — ce champ N'EST PAS exposé par leur API externe. C'est une limitation de l'API, pas un problème de données. Si on te demande le CJM, réponds : "Le CJM n'est pas accessible via l'API externe BoondManager (limitation confirmée par leur support). Vous pouvez le consulter directement dans la fiche de la ressource sur BoondManager." Ne cherche jamais à appeler un endpoint pour récupérer le CJM.
 - state=1 = actif/en mission, state=0 = inactif/sorti
 - CONSULTANT = typeOf=0 (interne) ou typeOf=1 (externe) uniquement
 - DISPONIBLE IMMÉDIATEMENT = state=0 + availability="immediate"
