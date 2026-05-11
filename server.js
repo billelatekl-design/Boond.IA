@@ -128,8 +128,8 @@ const server = http.createServer(async (req, res) => {
       name: 'boond_api',
       description: `Interroge l'API BoondManager. Pagination automatique incluse.
 
-ENDPOINTS:
-- /resources : ressources internes. Champs clés: state(1=actif,0=inactif), firstName, lastName, title, typeOf(0=consultant interne,1=consultant externe,2=ingénieur affaires,3=manager,7=alternant,13=RH), availability(date fin mission ou "immediate"), averageDailyPriceExcludingTax(TJM=tarif client HT), averageDailyCostExcludingTax(CJM=coût interne HT), email1, phone1, startDate, endDate
+ENDPOINTS LISTE (retournent plusieurs items, champs de base):
+- /resources : ressources internes. Champs: state(1=actif,0=inactif), firstName, lastName, title, typeOf(0=consultant interne,1=consultant externe,2=ingénieur affaires,3=manager,7=alternant,13=RH), availability, averageDailyPriceExcludingTax(TJM), email1, phone1
 - /candidates : candidats RH. Champs: firstName, lastName, title, email1, phone1
 - /contacts : contacts CRM externes. Champs: firstName, lastName, email1, phone1, companyName
 - /projects : projets. Champs: state(1=en cours,0=terminé), title, reference, startDate, endDate, totalExcludingTax
@@ -142,7 +142,17 @@ ENDPOINTS:
 - /orders : commandes. Champs: reference, totalExcludingTax, state
 - /payments : paiements. Champs: date, amount, invoiceId
 
-PARAMS utiles:
+ENDPOINTS DETAIL (retournent tous les champs d'un item via son ID):
+- /resources/{id} : fiche complète d'une ressource. Champs supplémentaires: averageDailyCostExcludingTax(CJM=coût interne HT), startDate, endDate, et tous les champs de la liste
+- /projects/{id} : fiche complète d'un projet
+- /contacts/{id} : fiche complète d'un contact
+- /candidates/{id} : fiche complète d'un candidat
+
+STRATÉGIE: Si la question concerne un champ détaillé (CJM, etc.) sur une personne spécifique:
+1. D'abord appeler /resources?keywords=PRENOM+NOM pour trouver l'ID
+2. Puis appeler /resources/{id} pour récupérer la fiche complète avec tous les champs
+
+PARAMS utiles (pour les endpoints liste):
 - keywords=PRENOM+NOM : recherche par nom
 - state=0 ou state=1 : filtrer par état
 - typeOf=0,1,2... : filtrer par type
@@ -164,8 +174,8 @@ Aujourd'hui : ${today}
 RÈGLES:
 - Appelle boond_api avec les bons paramètres pour répondre précisément
 - Si nécessaire, fais plusieurs appels enchaînés (ex: chercher une personne puis ses projets)
-- TJM = averageDailyPriceExcludingTax = tarif journalier facturé au client HT
-- CJM = averageDailyCostExcludingTax = coût journalier interne HT (ne jamais confondre avec TJM)
+- TJM = averageDailyPriceExcludingTax = tarif journalier facturé au client HT (disponible dans la liste /resources)
+- CJM = averageDailyCostExcludingTax = coût journalier interne HT. IMPORTANT: ce champ n'est disponible QUE dans la fiche détail /resources/{id}, PAS dans la liste. Pour obtenir le CJM, tu dois toujours appeler /resources/{id} après avoir trouvé l'ID via la liste.
 - state=1 = actif/en mission, state=0 = inactif/sorti
 - CONSULTANT = typeOf=0 (interne) ou typeOf=1 (externe) uniquement
 - DISPONIBLE IMMÉDIATEMENT = state=0 + availability="immediate"
