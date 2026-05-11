@@ -126,17 +126,39 @@ const server = http.createServer(async (req, res) => {
       // Récupérer tous les outils du MCP server
       const { tools: mcpTools } = await mcpClient.listTools();
 
-      // Convertir au format Anthropic (tronquer descriptions pour limiter les tokens)
-      const anthropicTools = mcpTools.map(t => {
-        const desc = (t.description || t.name).slice(0, 120);
+      // Filtrer les outils selon les mots-clés de la question pour limiter les tokens
+      const qLower = question.toLowerCase();
+      const KEYWORD_MAP = [
+        { keys: ['ressource','resource','consultant','collaborateur','tjm','mission','actif','inactif','effectif','combien'], domains: ['resource'] },
+        { keys: ['projet','project','client','contrat','chiffre','ca '], domains: ['project','contract'] },
+        { keys: ['candidat','candidate','recrutement','cv','profil'], domains: ['candidate'] },
+        { keys: ['facture','invoice','facturation','paiement'], domains: ['invoice','billing'] },
+        { keys: ['absence','conge','congé','vacance'], domains: ['absence','leave'] },
+        { keys: ['timesheet','cra','activité','jour travaillé'], domains: ['timesheet','activity'] },
+        { keys: ['contact','prospect','commercial'], domains: ['contact','prospect'] },
+        { keys: ['agence','agency','département'], domains: ['agency'] },
+      ];
+      const activeDomains = new Set();
+      for (const { keys, domains } of KEYWORD_MAP) {
+        if (keys.some(k => qLower.includes(k))) domains.forEach(d => activeDomains.add(d));
+      }
+      // Si aucun domaine détecté, garder tous les outils "list" et "get" génériques
+      const filterFn = activeDomains.size > 0
+        ? t => [...activeDomains].some(d => t.name.toLowerCase().includes(d))
+        : t => t.name.toLowerCase().includes('list') || t.name.toLowerCase().includes('get');
+
+      const filteredTools = mcpTools.filter(filterFn).slice(0, 40);
+      const toolsToUse = filteredTools.length > 0 ? filteredTools : mcpTools.slice(0, 30);
+
+      const anthropicTools = toolsToUse.map(t => {
+        const desc = (t.description || t.name).slice(0, 150);
         const schema = t.inputSchema || { type: 'object', properties: {} };
-        // Garder uniquement les propriétés essentielles du schema pour réduire les tokens
         const trimmedSchema = {
           type: schema.type || 'object',
           properties: Object.fromEntries(
             Object.entries(schema.properties || {}).map(([k, v]) => [k, {
               type: v.type,
-              description: (v.description || '').slice(0, 80),
+              description: (v.description || '').slice(0, 100),
               ...(v.enum ? { enum: v.enum } : {})
             }])
           ),
