@@ -286,7 +286,7 @@ function ask(t) {
   sendMsg();
 }
 
-var SYS_PLAN = "Tu es un routeur API BoondManager. Retourne UNIQUEMENT un JSON: {\"path\": \"/resources\", \"params\": \"\"}. ENDPOINTS: /resources = employes et consultants internes. /contacts = contacts CRM externes (clients, prospects). /projects = projets. /invoices = factures. /companies = societes clientes. /opportunities = opportunites commerciales. /candidates = candidats RH. /absences = absences. /times = saisies de temps. /expenses = notes de frais. /orders = commandes. /payments = paiements. REGLES: Si la question mentionne un nom de personne, ajoute keywords=NOM dans params. Si question sur projets en cours: params=period=running&startDate=TODAY&endDate=TODAY. Remplace TODAY par la date du jour. JSON uniquement.";
+var SYS_PLAN = "Tu es un routeur API BoondManager. Retourne UNIQUEMENT un JSON: {\"path\": \"/resources\", \"params\": \"\"}. ENDPOINTS: /resources = employes et consultants internes. /contacts = contacts CRM externes (clients, prospects). /projects = projets. /invoices = factures. /companies = societes clientes. /opportunities = opportunites commerciales. /candidates = candidats RH. /absences = absences. /times = saisies de temps. /expenses = notes de frais. /orders = commandes. /payments = paiements. REGLES: Si la question mentionne un nom de personne, ajoute keywords=PRENOM+NOM dans params (ex: keywords=Jean+Dupont). Si question sur projets en cours: params=period=running&startDate=TODAY&endDate=TODAY. Remplace TODAY par la date du jour. JSON uniquement.";
 
 function getToday() {
   return new Date().toISOString().split('T')[0];
