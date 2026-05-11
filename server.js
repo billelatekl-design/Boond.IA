@@ -159,15 +159,20 @@ ENDPOINTS LISTE (retournent plusieurs items, champs de base):
 - /orders : commandes. Champs: reference, totalExcludingTax, state
 - /payments : paiements. Champs: date, amount, invoiceId
 
-ENDPOINTS DETAIL (retournent tous les champs d'un item via son ID):
-- /resources/{id} : fiche complète d'une ressource. Champs supplémentaires: averageDailyCostExcludingTax(CJM=coût interne HT), startDate, endDate, et tous les champs de la liste
+ENDPOINTS DETAIL (fiche complète via ID):
+- /resources/{id} : fiche principale d'une ressource
+- /resources/{id}/administrative : données administratives et financières: salaire, TJM, CJM (coût journalier)
+- /resources/{id}/technical-data : compétences techniques
+- /resources/{id}/positionings : positionnements/missions
+- /resources/{id}/projects : projets de la ressource
+- /resources/{id}/absences-reports : absences
 - /projects/{id} : fiche complète d'un projet
 - /contacts/{id} : fiche complète d'un contact
 - /candidates/{id} : fiche complète d'un candidat
 
-STRATÉGIE: Si la question concerne un champ détaillé (CJM, etc.) sur une personne spécifique:
-1. D'abord appeler /resources?keywords=PRENOM+NOM pour trouver l'ID
-2. Puis appeler /resources/{id} pour récupérer la fiche complète avec tous les champs
+STRATÉGIE pour les données financières (CJM, salaire, etc.) d'une personne:
+1. Appeler /resources?keywords=PRENOM+NOM pour trouver l'ID
+2. Appeler /resources/{id}/administrative pour lire les données financières
 
 PARAMS utiles (pour les endpoints liste):
 - keywords=PRENOM+NOM : recherche par nom
@@ -192,7 +197,7 @@ RÈGLES:
 - Appelle boond_api avec les bons paramètres pour répondre précisément
 - Si nécessaire, fais plusieurs appels enchaînés (ex: chercher une personne puis ses projets)
 - TJM = averageDailyPriceExcludingTax = tarif journalier facturé au client HT (disponible dans la liste /resources)
-- CJM = averageDailyCostExcludingTax = coût journalier interne HT. IMPORTANT: ce champ n'est disponible QUE dans la fiche détail /resources/{id}, PAS dans la liste. Pour obtenir le CJM, tu dois toujours appeler /resources/{id} après avoir trouvé l'ID via la liste.
+- CJM = coût journalier moyen interne HT. IMPORTANT: disponible UNIQUEMENT via /resources/{id}/administrative, jamais dans la liste /resources ni dans /resources/{id}. Pour obtenir le CJM, appelle toujours /resources/{id}/administrative.
 - state=1 = actif/en mission, state=0 = inactif/sorti
 - CONSULTANT = typeOf=0 (interne) ou typeOf=1 (externe) uniquement
 - DISPONIBLE IMMÉDIATEMENT = state=0 + availability="immediate"
